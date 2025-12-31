@@ -28,8 +28,7 @@ class FooterSection extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Titanium Systems helps security leaders modernize detection and
-response with measurable outcomes.',
+                  'Titanium Systems helps security leaders modernize detection and response with measurable outcomes.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.white70,
                         height: 1.5,

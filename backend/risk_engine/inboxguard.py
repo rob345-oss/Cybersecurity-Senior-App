@@ -9,7 +9,7 @@ from backend.risk_engine.base import build_risk_response
 
 URGENCY_TERMS = {"immediately", "final notice", "today", "urgent", "asap"}
 PAYMENT_TERMS = {"gift card", "wire", "crypto", "payment", "invoice"}
-OTP_TERMS = {"code", "otp", "verification"}
+OTP_TERMS = {"code", "otp", "verification", "verify"}
 IMPERSONATION_TERMS = {"irs", "usps", "fedex", "bank", "paypal", "microsoft"}
 URL_SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly"}
 

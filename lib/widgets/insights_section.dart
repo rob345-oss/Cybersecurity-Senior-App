@@ -42,8 +42,7 @@ class InsightsSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Accelerate your SOC with guided workflows, AI-assisted analysis, and
-unified reporting.',
+            'Accelerate your SOC with guided workflows, AI-assisted analysis, and unified reporting.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Colors.white70,
                 ),
