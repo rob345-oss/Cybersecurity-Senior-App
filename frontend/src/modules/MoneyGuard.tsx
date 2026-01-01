@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { postJson } from "../api";
+import { postJson, ApiError } from "../api";
 import { RiskResponse } from "../types";
 import RiskCard from "../components/RiskCard";
+import { useToast } from "../contexts/ToastContext";
+import { validateMoneyGuardForm } from "../utils/validation";
+import EmptyState from "../components/EmptyState";
 
 export default function MoneyGuard() {
+  const { showToast } = useToast();
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("zelle");
   const [recipient, setRecipient] = useState("");
@@ -16,8 +20,27 @@ export default function MoneyGuard() {
   const [impersonationType, setImpersonationType] = useState("none");
   const [risk, setRisk] = useState<RiskResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const assessRisk = async () => {
+    // Clear previous validation errors
+    setValidationErrors({});
+
+    // Validate form
+    const validation = validateMoneyGuardForm({ amount, recipient, paymentMethod });
+    if (!validation.isValid) {
+      const errors: Record<string, string> = {};
+      validation.errors.forEach((error) => {
+        if (error.includes("Amount")) errors.amount = error;
+        else if (error.includes("Recipient")) errors.recipient = error;
+        else if (error.includes("Payment method")) errors.paymentMethod = error;
+        else errors.general = error;
+      });
+      setValidationErrors(errors);
+      showToast(validation.errors.join(". "), "error");
+      return;
+    }
+
     setLoading(true);
     setRisk(null);
     try {
@@ -34,8 +57,11 @@ export default function MoneyGuard() {
         impersonation_type: impersonationType
       });
       setRisk(response);
+      showToast("Risk assessment completed successfully", "success");
     } catch (error) {
       console.error(error);
+      const errorMessage = error instanceof ApiError ? error.message : "Failed to assess risk. Please try again.";
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -44,11 +70,16 @@ export default function MoneyGuard() {
   const shareSummary = async () => {
     if (!risk) return;
     const summary = `Titanium Guardian MoneyGuard summary: ${risk.level} risk score ${risk.score}.`;
-    if (navigator.share) {
-      await navigator.share({ text: summary });
-    } else {
-      await navigator.clipboard.writeText(summary);
-      alert("Summary copied to clipboard.");
+    try {
+      if (navigator.share) {
+        await navigator.share({ text: summary });
+        showToast("Summary shared successfully", "success");
+      } else {
+        await navigator.clipboard.writeText(summary);
+        showToast("Summary copied to clipboard", "success");
+      }
+    } catch (error) {
+      showToast("Failed to share summary", "error");
     }
   };
 
@@ -59,15 +90,81 @@ export default function MoneyGuard() {
         <div className="grid">
           <label>
             Amount
-            <input className="input" value={amount} onChange={(event) => setAmount(event.target.value)} />
+            <input
+              className="input"
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(event) => {
+                setAmount(event.target.value);
+                if (validationErrors.amount) {
+                  setValidationErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.amount;
+                    return next;
+                  });
+                }
+              }}
+              style={{
+                borderColor: validationErrors.amount ? "#ef4444" : undefined
+              }}
+            />
+            {validationErrors.amount && (
+              <span style={{ fontSize: "12px", color: "#ef4444", marginTop: "4px", display: "block" }}>
+                {validationErrors.amount}
+              </span>
+            )}
           </label>
           <label>
             Payment method
-            <input className="input" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} />
+            <input
+              className="input"
+              value={paymentMethod}
+              onChange={(event) => {
+                setPaymentMethod(event.target.value);
+                if (validationErrors.paymentMethod) {
+                  setValidationErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.paymentMethod;
+                    return next;
+                  });
+                }
+              }}
+              style={{
+                borderColor: validationErrors.paymentMethod ? "#ef4444" : undefined
+              }}
+            />
+            {validationErrors.paymentMethod && (
+              <span style={{ fontSize: "12px", color: "#ef4444", marginTop: "4px", display: "block" }}>
+                {validationErrors.paymentMethod}
+              </span>
+            )}
           </label>
           <label>
             Recipient
-            <input className="input" value={recipient} onChange={(event) => setRecipient(event.target.value)} />
+            <input
+              className="input"
+              value={recipient}
+              onChange={(event) => {
+                setRecipient(event.target.value);
+                if (validationErrors.recipient) {
+                  setValidationErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.recipient;
+                    return next;
+                  });
+                }
+              }}
+              style={{
+                borderColor: validationErrors.recipient ? "#ef4444" : undefined
+              }}
+            />
+            {validationErrors.recipient && (
+              <span style={{ fontSize: "12px", color: "#ef4444", marginTop: "4px", display: "block" }}>
+                {validationErrors.recipient}
+              </span>
+            )}
           </label>
           <label>
             Reason
@@ -124,6 +221,15 @@ export default function MoneyGuard() {
           {loading ? "Assessing..." : "Assess Risk"}
         </button>
       </div>
+      {!risk && !loading && (
+        <div className="card">
+          <EmptyState
+            title="No assessment yet"
+            description="Fill out the form above and click 'Assess Risk' to get a risk analysis for your payment."
+            icon="💳"
+          />
+        </div>
+      )}
       {risk && (
         <div>
           <RiskCard risk={risk} />

@@ -5,13 +5,17 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 import os
 import logging
+import re
+from html_sanitizer import Sanitizer
 
-from fastapi import FastAPI, HTTPException, Security, Depends
-from fastapi.security import APIKeyHeader
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from urllib.parse import urlparse
-import re
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(
@@ -31,6 +35,28 @@ from backend.models import (
 )
 from backend.risk_engine import callguard, identitywatch, inboxguard, moneyguard
 from backend.storage.memory import MemoryStore
+from backend.database.connection import init_db
+from backend.database.models import User
+from backend.auth.router import router as auth_router, set_limiter
+from backend.auth.dependencies import get_current_user
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events."""
+    # Startup
+    logger.info("Initializing database...")
+    try:
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}", exc_info=True)
+        raise
+    
+    yield
+    
+    # Shutdown (if needed)
+    logger.info("Shutting down...")
+
 
 app = FastAPI(
     title="Titanium Guardian API",
@@ -39,42 +65,77 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
+
+# Initialize rate limiter (must be after app creation for proper integration)
+limiter = Limiter(key_func=get_remote_address, app=app)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Configure CORS with environment variable support
+# CORS_ORIGINS should be a comma-separated list of allowed origins
+# If not set or set to "*", allows all origins (development mode)
+# Example: CORS_ORIGINS=https://example.com,https://app.example.com
+cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+if cors_origins_env == "*":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"] ,
+    allow_origins=allowed_origins,
+    allow_credentials=True if "*" not in allowed_origins else False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+# Input sanitizer configuration
+# Configure to strip HTML tags and dangerous content while preserving text
+sanitizer = Sanitizer({
+    "tags": set(),  # Remove all HTML tags
+    "attributes": {},
+    "empty": set(),
+    "separate": set(),
+})
 
 store = MemoryStore()
 
-# API Key Authentication
-API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
-API_KEY = os.getenv("API_KEY", "")
+# Include auth router
+set_limiter(limiter)
+app.include_router(auth_router)
 
 
-def verify_api_key(api_key: Optional[str] = Security(API_KEY_HEADER)) -> str:
-    """Verify the API key from the request header."""
-    if not API_KEY:
-        # If no API key is set in environment, skip validation (for development)
+def sanitize_input(text: str, max_length: Optional[int] = None) -> str:
+    """
+    Sanitize user input by removing HTML tags and dangerous content.
+    
+    Args:
+        text: The input text to sanitize
+        max_length: Optional maximum length for the input
+        
+    Returns:
+        Sanitized text
+    """
+    if not text:
         return ""
     
-    if not api_key:
-        raise HTTPException(
-            status_code=401,
-            detail="API key is required. Please provide X-API-Key header."
-        )
+    # Strip whitespace
+    sanitized = text.strip()
     
-    if api_key != API_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid API key."
-        )
+    # Remove HTML tags and scripts
+    sanitized = sanitizer.sanitize(sanitized)
     
-    return api_key
+    # Remove control characters except newlines and tabs
+    sanitized = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', sanitized)
+    
+    # Limit length if specified
+    if max_length and len(sanitized) > max_length:
+        sanitized = sanitized[:max_length]
+        logger.warning(f"Input truncated to {max_length} characters")
+    
+    return sanitized
 
 
 class MoneyGuardAssessRequest(BaseModel):
@@ -90,6 +151,22 @@ class MoneyGuardAssessRequest(BaseModel):
     impersonation_type: str
     session_id: Optional[str] = None
 
+    @field_validator("payment_method", "recipient", "impersonation_type")
+    @classmethod
+    def sanitize_string_fields(cls, v: str) -> str:
+        """Sanitize string fields to prevent XSS attacks."""
+        if not isinstance(v, str):
+            return v
+        return sanitize_input(v, max_length=500)
+
+    @field_validator("reason")
+    @classmethod
+    def sanitize_reason(cls, v: str) -> str:
+        """Sanitize reason field (can be longer)."""
+        if not isinstance(v, str):
+            return v
+        return sanitize_input(v, max_length=1000)
+
 
 class MoneyGuardSafeStepsRequest(BaseModel):
     session_id: Optional[str] = None
@@ -98,6 +175,22 @@ class MoneyGuardSafeStepsRequest(BaseModel):
 class InboxGuardTextRequest(BaseModel):
     text: str
     channel: str
+
+    @field_validator("text")
+    @classmethod
+    def sanitize_text(cls, v: str) -> str:
+        """Sanitize text field (allows longer content)."""
+        if not isinstance(v, str):
+            return v
+        return sanitize_input(v, max_length=10000)
+
+    @field_validator("channel")
+    @classmethod
+    def sanitize_channel(cls, v: str) -> str:
+        """Sanitize channel field."""
+        if not isinstance(v, str):
+            return v
+        return sanitize_input(v, max_length=100)
 
 
 class InboxGuardURLRequest(BaseModel):
@@ -108,8 +201,10 @@ class InboxGuardURLRequest(BaseModel):
     def validate_url(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("URL cannot be empty")
+        # Sanitize first to prevent XSS
+        sanitized = sanitize_input(v.strip(), max_length=2000)
         # Basic URL validation
-        parsed = urlparse(v)
+        parsed = urlparse(sanitized)
         if not parsed.scheme:
             raise ValueError("URL must include a scheme (http:// or https://)")
         if not parsed.netloc:
@@ -117,7 +212,7 @@ class InboxGuardURLRequest(BaseModel):
         # Check for valid scheme
         if parsed.scheme not in ("http", "https"):
             raise ValueError("URL scheme must be http or https")
-        return v
+        return sanitized
 
 
 class IdentityWatchProfileRequest(BaseModel):
@@ -132,28 +227,52 @@ class IdentityWatchProfileRequest(BaseModel):
         email_pattern = re.compile(
             r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         )
+        sanitized_emails = []
         for email in v:
             if not email or not email.strip():
                 raise ValueError("Email cannot be empty")
-            if not email_pattern.match(email.strip()):
+            # Sanitize email to prevent XSS
+            sanitized = sanitize_input(email.strip(), max_length=254)  # RFC 5321 max length
+            if not email_pattern.match(sanitized):
                 raise ValueError(f"Invalid email format: {email}")
-        return [email.strip() for email in v]
+            sanitized_emails.append(sanitized)
+        return sanitized_emails
 
     @field_validator("phones")
     @classmethod
     def validate_phones(cls, v: List[str]) -> List[str]:
         # Remove common phone number formatting characters
         phone_pattern = re.compile(r"^[\d\s\-\+\(\)]{10,20}$")
+        sanitized_phones = []
         for phone in v:
             if not phone or not phone.strip():
                 raise ValueError("Phone number cannot be empty")
+            # Sanitize phone number
+            sanitized = sanitize_input(phone.strip(), max_length=20)
             # Remove formatting for validation
-            cleaned = re.sub(r"[\s\-\(\)]", "", phone.strip())
+            cleaned = re.sub(r"[\s\-\(\)]", "", sanitized)
             if not cleaned.startswith("+") and len(cleaned) < 10:
                 raise ValueError(f"Phone number too short: {phone}")
-            if not phone_pattern.match(phone.strip()):
+            if not phone_pattern.match(sanitized):
                 raise ValueError(f"Invalid phone number format: {phone}")
-        return [phone.strip() for phone in v]
+            sanitized_phones.append(sanitized)
+        return sanitized_phones
+
+    @field_validator("full_name")
+    @classmethod
+    def sanitize_full_name(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize full_name field."""
+        if v is None:
+            return None
+        return sanitize_input(v, max_length=200)
+
+    @field_validator("state")
+    @classmethod
+    def sanitize_state(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize state field."""
+        if v is None:
+            return None
+        return sanitize_input(v, max_length=100)
 
 
 class IdentityWatchProfileResponse(BaseModel):
@@ -170,19 +289,23 @@ _profiles: Dict[str, IdentityWatchProfileRequest] = {}
 
 
 @app.post("/v1/session/start", response_model=SessionStartResponse)
-def start_session(
-    request: SessionStartRequest,
-    api_key: str = Depends(verify_api_key)
+@limiter.limit("100/minute")
+async def start_session(
+    request: Request,
+    session_request: SessionStartRequest,
+    current_user: User = Depends(get_current_user)
 ) -> SessionStartResponse:
-    record = store.start_session(str(request.user_id), request.device_id, request.module)
+    record = store.start_session(str(session_request.user_id), session_request.device_id, session_request.module)
     return SessionStartResponse(session_id=record.session_id)
 
 
 @app.post("/v1/session/{session_id}/event", response_model=RiskResponse)
-def append_event(
+@limiter.limit("200/minute")
+async def append_event(
+    request: Request,
     session_id: str,
     event: EventIn,
-    api_key: str = Depends(verify_api_key)
+    current_user: User = Depends(get_current_user)
 ) -> RiskResponse:
     record = store.get_session(session_id)
     if not record:
@@ -191,7 +314,7 @@ def append_event(
     store.append_event(session_id, event)
     try:
         logger.info(f"Assessing risk for session {session_id}, module: {record.module}, event type: {event.type}")
-        risk = _assess_session_risk(record.module, record.events)
+        risk = await _assess_session_risk(record.module, record.events)
         store.update_last_risk(session_id, risk)
         logger.info(f"Risk assessment completed for session {session_id}, score: {risk.score}")
         return risk
@@ -204,9 +327,11 @@ def append_event(
 
 
 @app.post("/v1/session/{session_id}/end", response_model=SessionSummary)
-def end_session(
+@limiter.limit("100/minute")
+async def end_session(
+    request: Request,
     session_id: str,
-    api_key: str = Depends(verify_api_key)
+    current_user: User = Depends(get_current_user)
 ) -> SessionSummary:
     record = store.get_session(session_id)
     if not record or not record.last_risk:
@@ -219,40 +344,67 @@ def end_session(
 
 
 @app.get("/v1/session/{session_id}", response_model=SessionDetail)
-def get_session(
+@limiter.limit("200/minute")
+async def get_session(
+    request: Request,
     session_id: str,
-    api_key: str = Depends(verify_api_key)
+    current_user: User = Depends(get_current_user)
 ) -> SessionDetail:
     record = store.get_session(session_id)
     if not record:
         raise HTTPException(status_code=404, detail="Session not found")
-    return SessionDetail(events=record.events, last_risk=record.last_risk)
+    
+    # Decrypt event payloads before returning (events stored with encrypted sensitive fields)
+    from backend.storage.encryption import get_encryption
+    encryption = get_encryption()
+    from backend.models import EventOut
+    
+    decrypted_events = []
+    for event in record.events:
+        # Decrypt sensitive fields in the payload dictionary
+        if isinstance(event.payload, dict):
+            # Use the storage's decrypt method which knows which fields are sensitive
+            decrypted_payload = store._decrypt_event_payload(event.payload)
+        else:
+            decrypted_payload = event.payload
+        
+        decrypted_event = EventOut(
+            id=event.id,
+            type=event.type,
+            payload=decrypted_payload,
+            timestamp=event.timestamp,
+        )
+        decrypted_events.append(decrypted_event)
+    
+    return SessionDetail(events=decrypted_events, last_risk=record.last_risk)
 
 
 @app.post("/v1/moneyguard/assess", response_model=RiskResponse)
-def moneyguard_assess(
-    request: MoneyGuardAssessRequest,
-    api_key: str = Depends(verify_api_key)
+@limiter.limit("100/minute")
+async def moneyguard_assess(
+    request: Request,
+    assess_request: MoneyGuardAssessRequest,
+    current_user: User = Depends(get_current_user)
 ) -> RiskResponse:
-    payload = request.dict(exclude={"session_id"})
+    payload = assess_request.dict(exclude={"session_id"})
     flags = {
-        "urgency_present": request.urgency_present,
-        "asked_to_keep_secret": request.asked_to_keep_secret,
-        "asked_for_verification_code": request.asked_for_verification_code,
-        "asked_for_remote_access": request.asked_for_remote_access,
-        "impersonation_type": request.impersonation_type,
+        "urgency_present": assess_request.urgency_present,
+        "asked_to_keep_secret": assess_request.asked_to_keep_secret,
+        "asked_for_verification_code": assess_request.asked_for_verification_code,
+        "asked_for_remote_access": assess_request.asked_for_remote_access,
+        "impersonation_type": assess_request.impersonation_type,
     }
     payload["flags"] = flags
-    payload["did_they_contact_you_first"] = request.did_they_contact_you_first
+    payload["did_they_contact_you_first"] = assess_request.did_they_contact_you_first
 
-    if request.session_id:
-        record = store.get_session(request.session_id)
+    if assess_request.session_id:
+        record = store.get_session(assess_request.session_id)
         if record:
             event = EventIn(type="assess", payload=payload, timestamp=datetime.now(timezone.utc))
             store.append_event(record.session_id, event)
 
     try:
-        logger.info(f"Assessing MoneyGuard risk: amount={request.amount}, payment_method={request.payment_method}, session_id={request.session_id}")
+        logger.info(f"Assessing MoneyGuard risk: amount={assess_request.amount}, payment_method={assess_request.payment_method}, session_id={assess_request.session_id}")
         risk = moneyguard.assess(payload)
         logger.info(f"MoneyGuard risk assessment completed: score={risk.score}, reasons_count={len(risk.reasons)}")
         return risk
@@ -271,21 +423,25 @@ def moneyguard_assess(
 
 
 @app.post("/v1/moneyguard/safe_steps")
-def moneyguard_safe_steps(
-    request: MoneyGuardSafeStepsRequest,
-    api_key: str = Depends(verify_api_key)
+@limiter.limit("100/minute")
+async def moneyguard_safe_steps(
+    request: Request,
+    steps_request: MoneyGuardSafeStepsRequest,
+    current_user: User = Depends(get_current_user)
 ) -> Dict[str, List[Dict[str, str]]]:
     return moneyguard.safe_steps()
 
 
 @app.post("/v1/inboxguard/analyze_text", response_model=RiskResponse)
-def inboxguard_analyze_text(
-    request: InboxGuardTextRequest,
-    api_key: str = Depends(verify_api_key)
+@limiter.limit("100/minute")
+async def inboxguard_analyze_text(
+    request: Request,
+    text_request: InboxGuardTextRequest,
+    current_user: User = Depends(get_current_user)
 ) -> RiskResponse:
     try:
-        logger.info(f"Analyzing InboxGuard text: channel={request.channel}, text_length={len(request.text)}")
-        risk = inboxguard.analyze_text(request.text, request.channel)
+        logger.info(f"Analyzing InboxGuard text: channel={text_request.channel}, text_length={len(text_request.text)}")
+        risk = inboxguard.analyze_text(text_request.text, text_request.channel)
         logger.info(f"InboxGuard text analysis completed: score={risk.score}, reasons_count={len(risk.reasons)}")
         return risk
     except ValueError as e:
@@ -303,13 +459,15 @@ def inboxguard_analyze_text(
 
 
 @app.post("/v1/inboxguard/analyze_url", response_model=RiskResponse)
-def inboxguard_analyze_url(
-    request: InboxGuardURLRequest,
-    api_key: str = Depends(verify_api_key)
+@limiter.limit("100/minute")
+async def inboxguard_analyze_url(
+    request: Request,
+    url_request: InboxGuardURLRequest,
+    current_user: User = Depends(get_current_user)
 ) -> RiskResponse:
     try:
-        logger.info(f"Analyzing InboxGuard URL: {request.url}")
-        risk = inboxguard.analyze_url(request.url)
+        logger.info(f"Analyzing InboxGuard URL: {url_request.url}")
+        risk = inboxguard.analyze_url(url_request.url)
         logger.info(f"InboxGuard URL analysis completed: score={risk.score}, reasons_count={len(risk.reasons)}")
         return risk
     except ValueError as e:
@@ -327,25 +485,44 @@ def inboxguard_analyze_url(
 
 
 @app.post("/v1/identitywatch/profile", response_model=IdentityWatchProfileResponse)
-def identitywatch_profile(
-    request: IdentityWatchProfileRequest,
-    api_key: str = Depends(verify_api_key)
+@limiter.limit("50/minute")
+async def identitywatch_profile(
+    request: Request,
+    profile_request: IdentityWatchProfileRequest,
+    current_user: User = Depends(get_current_user)
 ) -> IdentityWatchProfileResponse:
     profile_id = f"profile-{len(_profiles) + 1}"
-    _profiles[profile_id] = request
+    _profiles[profile_id] = profile_request
     return IdentityWatchProfileResponse(profile_id=profile_id, created=datetime.now(timezone.utc))
 
 
+@app.get("/v1/data-retention/policy")
+@limiter.limit("50/minute")
+async def get_retention_policy(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get current data retention policy configuration.
+    
+    This endpoint returns information about how long different types of data
+    are retained before being automatically deleted.
+    """
+    return store.get_retention_policy_summary()
+
+
 @app.post("/v1/identitywatch/check_risk", response_model=RiskResponse)
-def identitywatch_check_risk(
-    request: IdentityWatchRiskRequest,
-    api_key: str = Depends(verify_api_key)
+@limiter.limit("100/minute")
+async def identitywatch_check_risk(
+    request: Request,
+    risk_request: IdentityWatchRiskRequest,
+    current_user: User = Depends(get_current_user)
 ) -> RiskResponse:
-    if request.profile_id not in _profiles:
+    if risk_request.profile_id not in _profiles:
         raise HTTPException(status_code=404, detail="Profile not found")
     try:
-        logger.info(f"Assessing IdentityWatch risk for profile {request.profile_id}, signals_count={len(request.signals)}")
-        risk = identitywatch.assess(request.signals)
+        logger.info(f"Assessing IdentityWatch risk for profile {risk_request.profile_id}, signals_count={len(risk_request.signals)}")
+        risk = identitywatch.assess(risk_request.signals)
         logger.info(f"IdentityWatch risk assessment completed: score={risk.score}, reasons_count={len(risk.reasons)}")
         return risk
     except ValueError as e:
@@ -362,27 +539,43 @@ def identitywatch_check_risk(
         )
 
 
-def _assess_session_risk(module: ModuleName, events: List[Any]) -> RiskResponse:
+async def _assess_session_risk(module: ModuleName, events: List[Any]) -> RiskResponse:
+    """
+    Assess risk for a session based on module type and events.
+    Decrypts event payloads before passing to risk assessment functions.
+    """
     try:
+        # Decrypt event payloads before using them for risk assessment
+        def get_decrypted_payload(event):
+            """Get decrypted payload for an event."""
+            if isinstance(event.payload, dict):
+                return store._decrypt_event_payload(event.payload)
+            return event.payload
+        
         if module == "callguard":
-            signals = [event.payload.get("signal_key") for event in events if event.type == "signal"]
+            signals = [
+                get_decrypted_payload(event).get("signal_key") 
+                for event in events if event.type == "signal"
+            ]
             signals = [signal for signal in signals if signal]
             logger.debug(f"CallGuard assessment: signals={signals}")
             return callguard.assess(signals)
         if module == "moneyguard":
             latest = next((event for event in reversed(events) if event.type == "assess"), None)
-            payload = latest.payload if latest else {}
+            payload = get_decrypted_payload(latest) if latest else {}
             logger.debug(f"MoneyGuard assessment: payload_keys={list(payload.keys())}")
             return moneyguard.assess(payload)
         if module == "inboxguard":
             latest = next((event for event in reversed(events) if event.type in {"text", "url"}), None)
             if latest and latest.type == "text":
-                text = latest.payload.get("text", "")
-                channel = latest.payload.get("channel", "other")
+                decrypted_payload = get_decrypted_payload(latest)
+                text = decrypted_payload.get("text", "")
+                channel = decrypted_payload.get("channel", "other")
                 logger.debug(f"InboxGuard text analysis: channel={channel}, text_length={len(text)}")
                 return inboxguard.analyze_text(text, channel)
             if latest and latest.type == "url":
-                url = latest.payload.get("url", "")
+                decrypted_payload = get_decrypted_payload(latest)
+                url = decrypted_payload.get("url", "")
                 logger.debug(f"InboxGuard URL analysis: url={url}")
                 return inboxguard.analyze_url(url)
             # No text or URL event found

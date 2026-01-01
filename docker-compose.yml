@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: titanium-guardian-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-titanium_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-titanium_password}
+      - POSTGRES_DB=${POSTGRES_DB:-titanium_guardian}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-titanium_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - titanium-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: titanium-guardian-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-titanium_user}:${POSTGRES_PASSWORD:-titanium_password}@postgres:5432/${POSTGRES_DB:-titanium_guardian}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      - JWT_REFRESH_TOKEN_EXPIRE_DAYS=${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      - EMAIL_VERIFICATION_EXPIRY_HOURS=${EMAIL_VERIFICATION_EXPIRY_HOURS:-24}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - SESSION_TTL_HOURS=${SESSION_TTL_HOURS:-24}
+    volumes:
+      # Mount backend code for development (optional - remove for production)
+      - ./backend:/app/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - titanium-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: titanium-guardian-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - titanium-network
+
+networks:
+  titanium-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+

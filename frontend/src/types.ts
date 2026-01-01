@@ -16,7 +16,7 @@ export interface RiskResponse {
   next_action: string;
   recommended_actions: RecommendedAction[];
   safe_script?: SafeScript;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, any>;
 }
 
 export interface SessionStartResponse {

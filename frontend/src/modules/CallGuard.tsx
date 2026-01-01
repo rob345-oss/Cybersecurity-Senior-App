@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
-import { postJson } from "../api";
+import { postJson, ApiError } from "../api";
 import { RiskResponse, SessionStartResponse } from "../types";
 import ChipGrid from "../components/ChipGrid";
 import RiskCard from "../components/RiskCard";
+import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../contexts/AuthContext";
+import EmptyState from "../components/EmptyState";
 
 const signals = [
   "urgency",
@@ -20,6 +23,8 @@ const signals = [
 ];
 
 export default function CallGuard() {
+  const { showToast } = useToast();
+  const { user } = useAuth();
   const [selectedSignals, setSelectedSignals] = useState<Set<string>>(new Set());
   const [risk, setRisk] = useState<RiskResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,16 +65,28 @@ export default function CallGuard() {
   };
 
   const startSession = async () => {
+    if (selectedSignals.size === 0) {
+      showToast("Please select at least one signal", "error");
+      return;
+    }
+
     setLoading(true);
     setRisk(null);
     try {
+      if (!user?.id) {
+        showToast("You must be logged in to start a session", "error");
+        setLoading(false);
+        return;
+      }
+      
       const response = await postJson<SessionStartResponse>("v1/session/start", {
-        user_id: crypto.randomUUID(),
+        user_id: user.id,
         device_id: "web",
         module: "callguard",
         context: null
       });
       setSessionId(response.session_id);
+      showToast("Session started successfully", "success");
 
       for (const signal of selectedSignals) {
         const event = {
@@ -82,6 +99,8 @@ export default function CallGuard() {
       }
     } catch (error) {
       console.error(error);
+      const errorMessage = error instanceof ApiError ? error.message : "Failed to start session. Please try again.";
+      showToast(errorMessage, "error");
       setSessionId(null);
     } finally {
       setLoading(false);
@@ -91,11 +110,16 @@ export default function CallGuard() {
   const shareSummary = async () => {
     if (!risk) return;
     const summary = `Titanium Guardian CallGuard summary: ${risk.level} risk score ${risk.score}.`;
-    if (navigator.share) {
-      await navigator.share({ text: summary });
-    } else {
-      await navigator.clipboard.writeText(summary);
-      alert("Summary copied to clipboard.");
+    try {
+      if (navigator.share) {
+        await navigator.share({ text: summary });
+        showToast("Summary shared successfully", "success");
+      } else {
+        await navigator.clipboard.writeText(summary);
+        showToast("Summary copied to clipboard", "success");
+      }
+    } catch (error) {
+      showToast("Failed to share summary", "error");
     }
   };
 
@@ -116,13 +140,22 @@ export default function CallGuard() {
         <h2>I’m on a call — help me</h2>
         <p className="helper-note">Tap any signals you recognize while you’re on the line.</p>
         <ChipGrid items={signals} selected={selectedSignals} onToggle={toggleSignal} />
-        <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center" }}>
+        <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <button className="button" onClick={startSession} disabled={loading || selectedSignals.size === 0}>
             {loading ? "Starting..." : "Start Live Session"}
           </button>
           {sessionId && <span className="helper-note">Session ID: {sessionId}</span>}
         </div>
       </div>
+      {!risk && !loading && (
+        <div className="card">
+          <EmptyState
+            title="No session started yet"
+            description="Select any signals you recognize during a call, then click 'Start Live Session' to get real-time coaching."
+            icon="📞"
+          />
+        </div>
+      )}
       {risk && (
         <div>
           <RiskCard risk={risk} />
