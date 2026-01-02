@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
+import 'screens/callguard_screen.dart';
+import 'screens/inboxguard_screen.dart';
+import 'screens/moneyguard_screen.dart';
 
 void main() {
   runApp(const CybersecuritySeniorApp());
@@ -12,7 +15,7 @@ class CybersecuritySeniorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cybersecurity Senior App',
+      title: 'Titanium Guardian',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF070B12),
@@ -52,7 +55,70 @@ class CybersecuritySeniorApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const MainNavigationScreen(),
+      routes: {
+        '/home': (context) => const HomeScreen(),
+        '/callguard': (context) => const CallGuardScreen(),
+        '/inboxguard': (context) => const InboxGuardScreen(),
+        '/moneyguard': (context) => const MoneyGuardScreen(),
+      },
+    );
+  }
+}
+
+class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({super.key});
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const CallGuardScreen(),
+    const InboxGuardScreen(),
+    const MoneyGuardScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        backgroundColor: const Color(0xFF0E1C2F),
+        indicatorColor: const Color(0xFF00D4FF).withOpacity(0.3),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.phone_outlined),
+            selectedIcon: Icon(Icons.phone),
+            label: 'CallGuard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.email_outlined),
+            selectedIcon: Icon(Icons.email),
+            label: 'InboxGuard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'MoneyGuard',
+          ),
+        ],
+      ),
     );
   }
 }

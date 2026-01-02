@@ -1,6 +1,6 @@
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
-pydantic>=2.0.0
+pydantic[email]>=2.0.0
 pytest>=7.4.0
 slowapi>=0.1.9
 html-sanitizer>=2.3.3
@@ -11,4 +11,10 @@ alembic>=1.13.0
 bcrypt>=4.1.0
 python-jose[cryptography]>=3.3.0
 python-multipart>=0.0.6
+python-dotenv>=1.0.0
+openai>=1.0.0
+langchain>=0.1.0
+langchain-openai>=0.0.5
+crewai>=0.28.0
+crewai-tools>=0.1.0
 

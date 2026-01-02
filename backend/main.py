@@ -6,7 +6,6 @@ from uuid import UUID
 import os
 import logging
 import re
-from html_sanitizer import Sanitizer
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Request
@@ -35,7 +34,8 @@ from backend.models import (
 )
 from backend.risk_engine import callguard, identitywatch, inboxguard, moneyguard
 from backend.storage.memory import MemoryStore
-from backend.database.connection import init_db
+from backend.database.connection import check_database_connection, init_db
+from backend.database.exceptions import DatabaseConnectionError
 from backend.database.models import User
 from backend.auth.router import router as auth_router, set_limiter
 from backend.auth.dependencies import get_current_user
@@ -44,13 +44,43 @@ from backend.auth.dependencies import get_current_user
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup
-    logger.info("Initializing database...")
+    logger.info("Checking database connection...")
+    # Make database connection optional in development
+    skip_db_check = os.getenv("SKIP_DB_CHECK", "false").lower() == "true"
+    
     try:
-        await init_db()
-        logger.info("Database initialized successfully")
+        # Check database connection before proceeding
+        is_connected = await check_database_connection()
+        if not is_connected:
+            if skip_db_check:
+                logger.warning("Database connection failed, but SKIP_DB_CHECK is enabled. Continuing without database.")
+            else:
+                raise DatabaseConnectionError(
+                    "Failed to connect to database. Please check your DATABASE_URL and ensure PostgreSQL is running. "
+                    "To skip database check in development, set SKIP_DB_CHECK=true in your .env file."
+                )
+        else:
+            logger.info("Database connection verified")
+            logger.info("Initializing database...")
+            try:
+                await init_db()
+                logger.info("Database initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize database: {e}", exc_info=True)
+                if not skip_db_check:
+                    raise
+    except DatabaseConnectionError as e:
+        if skip_db_check:
+            logger.warning(f"Database connection failed, but SKIP_DB_CHECK is enabled: {e}")
+        else:
+            logger.error(f"Database connection failed: {e}")
+            raise
     except Exception as e:
-        logger.error(f"Failed to initialize database: {e}", exc_info=True)
-        raise
+        if skip_db_check:
+            logger.warning(f"Unexpected error checking database connection (SKIP_DB_CHECK enabled): {e}")
+        else:
+            logger.error(f"Unexpected error checking database connection: {e}", exc_info=True)
+            raise DatabaseConnectionError(f"Database connection check failed: {e}") from e
     
     yield
     
@@ -69,7 +99,7 @@ app = FastAPI(
 )
 
 # Initialize rate limiter (must be after app creation for proper integration)
-limiter = Limiter(key_func=get_remote_address, app=app)
+limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -91,51 +121,13 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-# Input sanitizer configuration
-# Configure to strip HTML tags and dangerous content while preserving text
-sanitizer = Sanitizer({
-    "tags": set(),  # Remove all HTML tags
-    "attributes": {},
-    "empty": set(),
-    "separate": set(),
-})
+from backend.utils import sanitize_input
 
 store = MemoryStore()
 
 # Include auth router
 set_limiter(limiter)
 app.include_router(auth_router)
-
-
-def sanitize_input(text: str, max_length: Optional[int] = None) -> str:
-    """
-    Sanitize user input by removing HTML tags and dangerous content.
-    
-    Args:
-        text: The input text to sanitize
-        max_length: Optional maximum length for the input
-        
-    Returns:
-        Sanitized text
-    """
-    if not text:
-        return ""
-    
-    # Strip whitespace
-    sanitized = text.strip()
-    
-    # Remove HTML tags and scripts
-    sanitized = sanitizer.sanitize(sanitized)
-    
-    # Remove control characters except newlines and tabs
-    sanitized = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', sanitized)
-    
-    # Limit length if specified
-    if max_length and len(sanitized) > max_length:
-        sanitized = sanitized[:max_length]
-        logger.warning(f"Input truncated to {max_length} characters")
-    
-    return sanitized
 
 
 class MoneyGuardAssessRequest(BaseModel):

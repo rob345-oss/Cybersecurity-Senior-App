@@ -73,18 +73,27 @@ export default function CallGuard() {
     setLoading(true);
     setRisk(null);
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuard.tsx:73',message:'startSession called',data:{hasUser:!!user,userId:user?.id,selectedSignalsCount:selectedSignals.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       if (!user?.id) {
         showToast("You must be logged in to start a session", "error");
         setLoading(false);
         return;
       }
       
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuard.tsx:82',message:'About to call postJson',data:{endpoint:'v1/session/start',userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       const response = await postJson<SessionStartResponse>("v1/session/start", {
         user_id: user.id,
         device_id: "web",
         module: "callguard",
         context: null
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuard.tsx:88',message:'postJson success',data:{sessionId:response.session_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setSessionId(response.session_id);
       showToast("Session started successfully", "success");
 
@@ -98,9 +107,25 @@ export default function CallGuard() {
         setRisk(result);
       }
     } catch (error) {
-      console.error(error);
-      const errorMessage = error instanceof ApiError ? error.message : "Failed to start session. Please try again.";
-      showToast(errorMessage, "error");
+      console.error("CallGuard error:", error);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuard.tsx:100',message:'CallGuard error caught',data:{errorType:error?.constructor?.name,errorName:(error as Error)?.name,errorMessage:(error as Error)?.message,isApiError:error instanceof ApiError,errorStack:(error as Error)?.stack?.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      let errorMessage = "Failed to start session. Please try again.";
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      // Show a more helpful error message
+      if (errorMessage.includes("connect") || errorMessage.includes("backend")) {
+        showToast(
+          `${errorMessage} Make sure the backend is running: python -m uvicorn backend.main:app --reload`,
+          "error"
+        );
+      } else {
+        showToast(errorMessage, "error");
+      }
       setSessionId(null);
     } finally {
       setLoading(false);

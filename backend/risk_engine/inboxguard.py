@@ -7,10 +7,18 @@ from urllib.parse import urlparse
 from backend.models import RecommendedAction, RiskResponse
 from backend.risk_engine.base import build_risk_response
 
-URGENCY_TERMS = {"immediately", "final notice", "today", "urgent", "asap"}
-PAYMENT_TERMS = {"gift card", "wire", "crypto", "payment", "invoice"}
-OTP_TERMS = {"code", "otp", "verification", "verify"}
-IMPERSONATION_TERMS = {"irs", "usps", "fedex", "bank", "paypal", "microsoft"}
+URGENCY_TERMS = {"immediately", "final notice", "today", "urgent", "asap", "emergency", "act now", "limited time"}
+PAYMENT_TERMS = {"gift card", "wire", "crypto", "payment", "invoice", "western union", "moneygram", "bitcoin", "ethereum"}
+OTP_TERMS = {"code", "otp", "verification", "verify", "one-time code", "verification code"}
+IMPERSONATION_TERMS = {"irs", "usps", "fedex", "bank", "paypal", "microsoft", "medicare", "social security", "ssa", "treasury", "fbi", "police", "sheriff"}
+# Common scam pattern terms
+GRANDPARENT_SCAM_TERMS = {"grandchild", "grandson", "granddaughter", "in jail", "hospital", "car accident", "bail money", "lawyer", "attorney"}
+ROMANCE_SCAM_TERMS = {"my love", "sweetheart", "darling", "emergency money", "travel expenses", "visa fees", "customs", "stranded"}
+LOTTERY_SCAM_TERMS = {"you've won", "prize winner", "lottery", "sweepstakes", "jackpot", "claim your prize", "processing fee", "tax payment", "upfront payment"}
+INVESTMENT_SCAM_TERMS = {"guaranteed return", "risk-free", "once in a lifetime", "exclusive opportunity", "limited offer", "act fast", "get rich quick"}
+CHARITY_SCAM_TERMS = {"disaster relief", "hurricane", "flood", "wildfire", "donate now", "help victims", "urgent donation", "crisis fund"}
+CONTRACTOR_SCAM_TERMS = {"damage inspection", "roof repair", "driveway", "siding", "cash discount", "today only", "leftover materials"}
+MEDICARE_SCAM_TERMS = {"medicare number", "benefits verification", "new card", "medicare id", "coverage issue"}
 URL_SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly"}
 
 
@@ -63,6 +71,29 @@ def analyze_text(text: str, channel: str) -> RiskResponse:
     if entities:
         score += 20
         reasons.append("Impersonation terms detected")
+    
+    # Common scam pattern detection
+    if any(term in lower for term in GRANDPARENT_SCAM_TERMS):
+        score += 25
+        reasons.append("Grandparent/Family Emergency scam indicators detected")
+    if any(term in lower for term in ROMANCE_SCAM_TERMS):
+        score += 23
+        reasons.append("Romance scam indicators detected")
+    if any(term in lower for term in LOTTERY_SCAM_TERMS):
+        score += 28
+        reasons.append("Lottery/Sweepstakes scam indicators detected")
+    if any(term in lower for term in INVESTMENT_SCAM_TERMS):
+        score += 25
+        reasons.append("Investment scam indicators detected")
+    if any(term in lower for term in CHARITY_SCAM_TERMS):
+        score += 20
+        reasons.append("Charity scam indicators detected")
+    if any(term in lower for term in CONTRACTOR_SCAM_TERMS):
+        score += 22
+        reasons.append("Contractor scam indicators detected")
+    if any(term in lower for term in MEDICARE_SCAM_TERMS):
+        score += 24
+        reasons.append("Medicare scam indicators detected")
 
     extracted_urls = _extract_urls(text)
     url_flags: List[str] = []

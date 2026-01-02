@@ -8,10 +8,18 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from backend.database.connection import get_db
-from backend.database.models import User, EmailVerification
+from backend.database.exceptions import (
+    DatabaseIntegrityError,
+    DatabaseNotFoundError,
+)
+from backend.database.models import User
+from backend.database.service import DatabaseService
+from backend.database.repositories.user_repository import (
+    EmailVerificationRepository,
+    UserRepository,
+)
 from backend.auth.models import (
     RegisterRequest,
     RegisterResponse,
@@ -55,70 +63,78 @@ async def register(
     
     Rate limited: 5 requests per hour per IP.
     """
-    
     encryption = get_encryption()
     
-    # Check if user with email already exists
-    # We need to check encrypted emails - this is a limitation we accept
-    # In production, you might want to use a separate index table with hashed emails
-    result = await db.execute(
-        select(User).where(User.email_encrypted == encryption.encrypt(register_data.email))
-    )
-    existing_user = result.scalar_one_or_none()
+    # Encrypt email for lookup
+    email_encrypted = encryption.encrypt(register_data.email)
     
-    if existing_user:
+    try:
+        async with DatabaseService(session=db) as db_service:
+            user_repo = UserRepository(db_service)
+            verification_repo = EmailVerificationRepository(db_service)
+            
+            # Check if user with email already exists
+            existing_user = await user_repo.find_by_encrypted_email(email_encrypted)
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="An account with this email already exists",
+                )
+            
+            # Hash password
+            password_hash = get_password_hash(register_data.password)
+            
+            # Encrypt PII fields
+            full_name_encrypted = encryption.encrypt(register_data.full_name) if register_data.full_name else None
+            phone_encrypted = encryption.encrypt(register_data.phone) if register_data.phone else None
+            
+            # Create user
+            user = await user_repo.create(
+                email_encrypted=email_encrypted,
+                password_hash=password_hash,
+                full_name_encrypted=full_name_encrypted,
+                phone_encrypted=phone_encrypted,
+                email_verified=False,
+            )
+            
+            # Generate verification token
+            verification_token = generate_verification_token()
+            token_hash = hash_verification_token(verification_token)
+            expires_at = get_verification_expiry()
+            
+            # Create verification record
+            await verification_repo.create(
+                user_id=user.id,
+                token_hash=token_hash,
+                expires_at=expires_at,
+            )
+            
+            # Log verification token (in production, send email)
+            logger.info(f"Verification token for user {user.id}: {verification_token}")
+            logger.warning(
+                "In production, send verification email. "
+                f"For now, verification token is: {verification_token}"
+            )
+            
+            return RegisterResponse(
+                user_id=user.id,
+                email=register_data.email,  # Return unencrypted email in response
+                message="Account created successfully. Please check your email to verify your account.",
+            )
+    except DatabaseIntegrityError as e:
+        logger.error(f"Database integrity error during registration: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists",
         )
-    
-    # Hash password
-    password_hash = get_password_hash(register_data.password)
-    
-    # Encrypt PII fields
-    email_encrypted = encryption.encrypt(register_data.email)
-    full_name_encrypted = encryption.encrypt(register_data.full_name) if register_data.full_name else None
-    phone_encrypted = encryption.encrypt(register_data.phone) if register_data.phone else None
-    
-    # Create user
-    user = User(
-        email_encrypted=email_encrypted,
-        password_hash=password_hash,
-        full_name_encrypted=full_name_encrypted,
-        phone_encrypted=phone_encrypted,
-        email_verified=False,
-    )
-    
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    
-    # Generate verification token
-    verification_token = generate_verification_token()
-    token_hash = hash_verification_token(verification_token)
-    expires_at = get_verification_expiry()
-    
-    verification = EmailVerification(
-        user_id=user.id,
-        token_hash=token_hash,
-        expires_at=expires_at,
-    )
-    
-    db.add(verification)
-    await db.commit()
-    
-    # Log verification token (in production, send email)
-    logger.info(f"Verification token for user {user.id}: {verification_token}")
-    logger.warning(
-        "In production, send verification email. "
-        f"For now, verification token is: {verification_token}"
-    )
-    
-    return RegisterResponse(
-        user_id=user.id,
-        email=register_data.email,  # Return unencrypted email in response
-        message="Account created successfully. Please check your email to verify your account.",
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during registration: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create account. Please try again later.",
+        )
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -132,52 +148,63 @@ async def login(
     """
     encryption = get_encryption()
     
-    # Find user by encrypted email
-    # This requires checking all users - inefficient but necessary with encrypted emails
-    # In production, consider using a separate lookup table with hashed emails
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-    
-    user = None
-    for u in users:
-        try:
-            if encryption.decrypt(u.email_encrypted) == login_data.email:
-                user = u
-                break
-        except Exception:
-            continue
-    
-    if user is None:
-        # Use same timing as successful login to prevent user enumeration
-        verify_password(login_data.password, "$2b$12$dummy.hash.to.prevent.timing.attack")
+    try:
+        async with DatabaseService(session=db) as db_service:
+            user_repo = UserRepository(db_service)
+            
+            # Find user by encrypted email
+            # This requires checking all users - inefficient but necessary with encrypted emails
+            # In production, consider using a separate lookup table with hashed emails
+            users = await user_repo.find_all()
+            
+            user = None
+            for u in users:
+                try:
+                    if encryption.decrypt(u.email_encrypted) == login_data.email:
+                        user = u
+                        break
+                except Exception:
+                    continue
+            
+            if user is None:
+                # Use same timing as successful login to prevent user enumeration
+                verify_password(login_data.password, "$2b$12$dummy.hash.to.prevent.timing.attack")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password",
+                )
+            
+            # Verify password
+            if not verify_password(login_data.password, user.password_hash):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password",
+                )
+            
+            # Create tokens
+            token_data = {"sub": str(user.id)}
+            access_token = create_access_token(token_data)
+            refresh_token = create_refresh_token(token_data)
+            
+            # Decrypt email for response
+            decrypted_email = encryption.decrypt(user.email_encrypted)
+            
+            return LoginResponse(
+                access_token=access_token,
+                refresh_token=refresh_token,
+                token_type="bearer",
+                user_id=user.id,
+                email=decrypted_email,
+                email_verified=user.email_verified,
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to login. Please try again later.",
         )
-    
-    # Verify password
-    if not verify_password(login_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-        )
-    
-    # Create tokens
-    token_data = {"sub": str(user.id)}
-    access_token = create_access_token(token_data)
-    refresh_token = create_refresh_token(token_data)
-    
-    # Decrypt email for response
-    decrypted_email = encryption.decrypt(user.email_encrypted)
-    
-    return LoginResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        user_id=user.id,
-        email=decrypted_email,
-        email_verified=user.email_verified,
-    )
 
 
 @router.post("/verify-email", response_model=VerifyEmailResponse)
@@ -192,46 +219,61 @@ async def verify_email(
     # Hash the provided token
     token_hash = hash_verification_token(verify_data.token)
     
-    # Find verification record
-    result = await db.execute(
-        select(EmailVerification)
-        .where(EmailVerification.token_hash == token_hash)
-        .where(EmailVerification.used_at.is_(None))
-    )
-    verification = result.scalar_one_or_none()
-    
-    if verification is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification token",
-        )
-    
-    # Check expiration
-    if datetime.now(timezone.utc) > verification.expires_at:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Verification token has expired",
-        )
-    
-    # Get user
-    user_result = await db.execute(select(User).where(User.id == verification.user_id))
-    user = user_result.scalar_one_or_none()
-    
-    if user is None:
+    try:
+        async with DatabaseService(session=db) as db_service:
+            user_repo = UserRepository(db_service)
+            verification_repo = EmailVerificationRepository(db_service)
+            
+            # Find verification record
+            verification = await verification_repo.find_by_token_hash(token_hash, unused_only=True)
+            
+            if verification is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid or expired verification token",
+                )
+            
+            # Check expiration
+            if datetime.now(timezone.utc) > verification.expires_at:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Verification token has expired",
+                )
+            
+            # Get user
+            try:
+                user = await user_repo.find_by_id(verification.user_id)
+            except DatabaseNotFoundError:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found",
+                )
+            
+            # Mark verification as used
+            await verification_repo.mark_as_used(
+                verification=verification,
+                used_at=datetime.now(timezone.utc),
+            )
+            
+            # Mark user email as verified
+            user.email_verified = True
+            await user_repo.update(user)
+            
+            return VerifyEmailResponse(message="Email verified successfully.")
+    except HTTPException:
+        raise
+    except DatabaseNotFoundError as e:
+        logger.error(f"Database not found error during email verification: {e}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    
-    # Mark verification as used
-    verification.used_at = datetime.now(timezone.utc)
-    
-    # Mark user email as verified
-    user.email_verified = True
-    
-    await db.commit()
-    
-    return VerifyEmailResponse(message="Email verified successfully.")
+    except Exception as e:
+        logger.error(f"Unexpected error during email verification: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to verify email. Please try again later.",
+        )
 
 
 @router.post("/refresh", response_model=RefreshTokenResponse)

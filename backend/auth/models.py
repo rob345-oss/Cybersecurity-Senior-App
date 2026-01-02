@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, field_validator
 import re
 
-from backend.main import sanitize_input
+from backend.utils import sanitize_input
 
 
 def validate_password_strength(password: str) -> str:

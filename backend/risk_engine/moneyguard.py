@@ -9,12 +9,33 @@ PAYMENT_WEIGHTS = {
     "gift_card": 40,
     "crypto": 35,
     "wire": 25,
+    "western_union": 30,
+    "moneygram": 30,
+    "prepaid_card": 35,
 }
 
 IMPERSONATION_WEIGHTS = {
     "bank": 15,
     "government": 15,
     "tech_support": 15,
+    "medicare": 20,
+    "health_insurance": 20,
+    "contractor": 18,
+    "charity": 15,
+}
+
+SCAM_TYPE_WEIGHTS = {
+    "grandparent_scam": 30,
+    "family_emergency": 30,
+    "romance_scam": 28,
+    "lottery_scam": 35,
+    "sweepstakes_scam": 35,
+    "investment_scam": 32,
+    "charity_scam": 22,
+    "contractor_scam": 25,
+    "home_repair": 25,
+    "medicare_scam": 25,
+    "tech_support": 20,
 }
 
 
@@ -46,6 +67,35 @@ def assess(payload: Dict[str, object]) -> RiskResponse:
     if flags.get("urgency_present"):
         score += 15
         reasons.append("They created urgency or pressure.")
+    
+    # Detect common scam patterns in payment requests
+    scam_type = str(flags.get("scam_type", "")).lower()
+    if scam_type in SCAM_TYPE_WEIGHTS:
+        score += SCAM_TYPE_WEIGHTS[scam_type]
+        reasons.append(f"Common scam pattern detected: {scam_type.replace('_', ' ')}")
+    
+    # Additional scam indicators
+    if flags.get("upfront_payment_required"):
+        score += 25
+        reasons.append("Upfront payment required (common in lottery/prize scams)")
+    if flags.get("wont_meet_in_person"):
+        score += 20
+        reasons.append("They refuse to meet in person (common in romance scams)")
+    if flags.get("refuses_video_chat"):
+        score += 15
+        reasons.append("They refuse video chat verification (romance scam red flag)")
+    if flags.get("guaranteed_return") and amount > 1000:
+        score += 28
+        reasons.append("Guaranteed returns with large amount (investment scam indicator)")
+    if flags.get("prize_claim_fee"):
+        score += 30
+        reasons.append("Fee required to claim prize (lottery/sweepstakes scam)")
+    if flags.get("emergency_family_member"):
+        score += 28
+        reasons.append("Emergency involving family member (grandparent scam indicator)")
+    if flags.get("contractor_pressure"):
+        score += 22
+        reasons.append("Contractor creating pressure (home repair scam)")
 
     impersonation = str(flags.get("impersonation_type", "none")).lower()
     if impersonation in IMPERSONATION_WEIGHTS:
@@ -80,6 +130,7 @@ def assess(payload: Dict[str, object]) -> RiskResponse:
         "amount": amount,
         "payment_method": payment_method,
         "impersonation_type": impersonation,
+        "scam_type": scam_type if scam_type else "none",
     }
 
     return build_risk_response(

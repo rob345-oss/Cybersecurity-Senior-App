@@ -8,12 +8,13 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from backend.database.connection import get_db
+from backend.database.exceptions import DatabaseNotFoundError
 from backend.database.models import User
+from backend.database.service import DatabaseService
+from backend.database.repositories.user_repository import UserRepository
 from backend.auth.jwt_handler import verify_token
-from backend.storage.encryption import get_encryption
 
 # HTTP Bearer token scheme
 security = HTTPBearer()
@@ -66,17 +67,24 @@ async def get_current_user(
         )
     
     # Get user from database
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    
-    if user is None:
+    try:
+        async with DatabaseService(session=db) as db_service:
+            user_repo = UserRepository(db_service)
+            user = await user_repo.find_by_id(user_id)
+            return user
+    except DatabaseNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    return user
+    except Exception as e:
+        # Log the error but don't expose internal details
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to authenticate user",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 async def get_current_user_optional(
