@@ -2,21 +2,8 @@
 
 import CallGuardClient from './CallGuardClient'
 import NavBar from '../components/home/NavBar'
-import { useEffect } from 'react'
 
 export default function CallGuardPage() {
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callguard/page.tsx:10',message:'CallGuardPage component mounted',data:{pathname:window.location.pathname,hasNavBar:!!NavBar,hasCallGuardClient:!!CallGuardClient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  }, []);
-  // #endregion
-  
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'callguard/page.tsx:15',message:'CallGuardPage render start',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  }
-  // #endregion
-  
   return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
