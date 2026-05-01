@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from typing import AsyncGenerator
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from dotenv import load_dotenv
 from sqlalchemy import text
@@ -30,15 +30,6 @@ DATABASE_URL_RAW = os.getenv(
     "postgresql+asyncpg://titanium_user:titanium_password@localhost:5432/titanium_guardian"
 )
 
-# #region agent log
-import json
-log_path = Path(__file__).parent.parent.parent / ".cursor" / "debug.log"
-try:
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"connection.py:28","message":"DATABASE_URL from env","data":{"url_prefix":DATABASE_URL_RAW[:30] if DATABASE_URL_RAW else None,"url_length":len(DATABASE_URL_RAW) if DATABASE_URL_RAW else 0,"url_scheme":DATABASE_URL_RAW.split("://")[0] if "://" in DATABASE_URL_RAW else "none"},"timestamp":int(__import__("time").time()*1000)}) + "\n")
-except: pass
-# #endregion
-
 # Normalize DATABASE_URL to use asyncpg driver
 def normalize_database_url(url: str) -> str:
     """
@@ -52,25 +43,10 @@ def normalize_database_url(url: str) -> str:
     """
     if url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
         # Replace postgresql:// with postgresql+asyncpg://
-        normalized = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        # #region agent log
-        try:
-            log_path_local = Path(__file__).parent.parent.parent / ".cursor" / "debug.log"
-            with open(log_path_local, "a", encoding="utf-8") as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"D","location":"connection.py:normalize_database_url","message":"URL normalized","data":{"original_scheme":"postgresql://","normalized_scheme":"postgresql+asyncpg://"},"timestamp":int(__import__("time").time()*1000)}) + "\n")
-        except: pass
-        # #endregion
-        return normalized
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
 
 DATABASE_URL = normalize_database_url(DATABASE_URL_RAW)
-
-# #region agent log
-try:
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"D","location":"connection.py:45","message":"After normalization","data":{"final_url_scheme":DATABASE_URL.split("://")[0] if "://" in DATABASE_URL else "none"},"timestamp":int(__import__("time").time()*1000)}) + "\n")
-except: pass
-# #endregion
 
 # Get DB_PATH from environment variable (optional, for PostgreSQL binaries)
 DB_PATH = os.getenv("DB_PATH", "")
@@ -97,51 +73,36 @@ def validate_database_url(url: str) -> bool:
     except Exception:
         return False
 
-# #region agent log
-try:
-    validation_result = validate_database_url(DATABASE_URL)
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"B","location":"connection.py:58","message":"URL validation result","data":{"is_valid":validation_result,"url_scheme":DATABASE_URL.split("://")[0] if "://" in DATABASE_URL else "none"},"timestamp":int(__import__("time").time()*1000)}) + "\n")
-except: pass
-# #endregion
+
+def redact_database_url(url: str) -> str:
+    """
+    Return a safe-to-log database URL without embedded credentials.
+    """
+    try:
+        parsed = urlparse(url)
+        host = parsed.hostname or ""
+        port = f":{parsed.port}" if parsed.port else ""
+        netloc = f"***:***@{host}{port}" if parsed.username or parsed.password else parsed.netloc
+        return urlunparse(parsed._replace(netloc=netloc))
+    except Exception:
+        return "<invalid database url>"
+
 
 if not validate_database_url(DATABASE_URL):
     logging.warning(
-        f"Invalid DATABASE_URL format: {DATABASE_URL[:50]}... "
+        f"Invalid DATABASE_URL format: {redact_database_url(DATABASE_URL)} "
         "Expected format: postgresql+asyncpg://user:password@host:port/database"
     )
 
-# #region agent log
-try:
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"C","location":"connection.py:64","message":"Before create_async_engine","data":{"url_scheme":DATABASE_URL.split("://")[0] if "://" in DATABASE_URL else "none","has_asyncpg":DATABASE_URL.startswith("postgresql+asyncpg://"),"has_postgresql_only":DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+asyncpg://")},"timestamp":int(__import__("time").time()*1000)}) + "\n")
-except: pass
-# #endregion
-
 # Create async engine
-try:
-    engine = create_async_engine(
-        DATABASE_URL,
-        echo=False,  # Set to True for SQL query logging
-        future=True,
-        pool_pre_ping=True,  # Verify connections before using
-        pool_size=10,
-        max_overflow=20,
-    )
-    # #region agent log
-    try:
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"E","location":"connection.py:65","message":"Engine created successfully","data":{"engine_type":type(engine).__name__},"timestamp":int(__import__("time").time()*1000)}) + "\n")
-    except: pass
-    # #endregion
-except Exception as e:
-    # #region agent log
-    try:
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"E","location":"connection.py:65","message":"Engine creation failed","data":{"error_type":type(e).__name__,"error_message":str(e)[:200]},"timestamp":int(__import__("time").time()*1000)}) + "\n")
-    except: pass
-    # #endregion
-    raise
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,  # Set to True for SQL query logging
+    future=True,
+    pool_pre_ping=True,  # Verify connections before using
+    pool_size=10,
+    max_overflow=20,
+)
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(

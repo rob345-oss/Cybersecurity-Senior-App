@@ -22,23 +22,11 @@ const signals = [
 ]
 
 export default function CallGuardClient() {
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuardClient.tsx:24',message:'CallGuardClient component mounting',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  }
-  // #endregion
-  
   const [selectedSignals, setSelectedSignals] = useState<Set<string>>(new Set())
   const [risk, setRisk] = useState<RiskResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuardClient.tsx:32',message:'CallGuardClient state initialized',data:{signalsCount:signals.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  }
-  // #endregion
 
   const quickActions = useMemo(
     () => [
@@ -143,12 +131,6 @@ export default function CallGuardClient() {
     }
   }
 
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuardClient.tsx:140',message:'CallGuardClient about to render JSX',data:{selectedSignalsCount:selectedSignals.size,hasRisk:!!risk,hasError:!!error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  }
-  // #endregion
-  
   return (
     <div className="space-y-6">
       {/* Quick Actions Card */}
