@@ -84,10 +84,10 @@ export default function MoneyGuard() {
   };
 
   return (
-    <div className="grid">
+    <div className="module-grid">
       <div className="card">
         <h2>Before you send money</h2>
-        <div className="grid">
+        <div className="module-grid">
           <label>
             Amount
             <input

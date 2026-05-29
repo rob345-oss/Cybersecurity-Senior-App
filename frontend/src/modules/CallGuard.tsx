@@ -149,7 +149,7 @@ export default function CallGuard() {
   };
 
   return (
-    <div className="grid">
+    <div className="module-grid">
       <div className="card">
         <h2>Quick Actions</h2>
         <div className="quick-actions">
@@ -165,7 +165,7 @@ export default function CallGuard() {
         <h2>I’m on a call — help me</h2>
         <p className="helper-note">Tap any signals you recognize while you’re on the line.</p>
         <ChipGrid items={signals} selected={selectedSignals} onToggle={toggleSignal} />
-        <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <button className="button" onClick={startSession} disabled={loading || selectedSignals.size === 0}>
             {loading ? "Starting..." : "Start Live Session"}
           </button>
@@ -184,7 +184,7 @@ export default function CallGuard() {
       {risk && (
         <div>
           <RiskCard risk={risk} />
-          <button className="button secondary" style={{ marginTop: 12 }} onClick={shareSummary}>
+          <button className="button secondary mt-3" onClick={shareSummary}>
             Share summary
           </button>
         </div>

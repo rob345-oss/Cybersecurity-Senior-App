@@ -2,56 +2,54 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { Shield } from 'lucide-react'
 
 export default function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex-shrink-0">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              Titanium Systems
-            </Link>
-          </div>
-          
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="#product" className="text-gray-600 hover:text-gray-900 transition-colors">
+    <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-xl font-bold text-slate-900">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary text-white">
+              <Shield className="h-5 w-5" aria-hidden />
+            </span>
+            Titanium Guardian
+          </Link>
+
+          <div className="hidden items-center space-x-8 md:flex">
+            <Link href="#product" className="text-slate-600 transition-colors hover:text-slate-900">
               Product
             </Link>
-            <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="#how-it-works" className="text-slate-600 transition-colors hover:text-slate-900">
               How It Works
             </Link>
-            <Link href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="#pricing" className="text-slate-600 transition-colors hover:text-slate-900">
               Pricing
             </Link>
-            <Link href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="#faq" className="text-slate-600 transition-colors hover:text-slate-900">
               FAQ
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href={process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173"}
-              className="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
+          <div className="hidden items-center space-x-3 md:flex">
+            <Link href={appUrl} className="btn-secondary px-4 py-2">
               Log In
             </Link>
-            <Link
-              href="/signup"
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-            >
+            <Link href="/signup" className="btn-primary px-4 py-2">
               Sign Up
             </Link>
           </div>
 
           <button
-            className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 md:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (
@@ -62,29 +60,23 @@ export default function NavBar() {
         </div>
 
         {isMenuOpen && (
-          <div className="md:hidden pb-4 space-y-3">
-            <Link href="#product" className="block text-gray-600 hover:text-gray-900 py-2">
+          <div className="space-y-3 border-t border-slate-100 pb-4 pt-3 md:hidden">
+            <Link href="#product" className="block py-2 text-slate-600 hover:text-slate-900" onClick={() => setIsMenuOpen(false)}>
               Product
             </Link>
-            <Link href="#how-it-works" className="block text-gray-600 hover:text-gray-900 py-2">
+            <Link href="#how-it-works" className="block py-2 text-slate-600 hover:text-slate-900" onClick={() => setIsMenuOpen(false)}>
               How It Works
             </Link>
-            <Link href="#pricing" className="block text-gray-600 hover:text-gray-900 py-2">
+            <Link href="#pricing" className="block py-2 text-slate-600 hover:text-slate-900" onClick={() => setIsMenuOpen(false)}>
               Pricing
             </Link>
-            <Link href="#faq" className="block text-gray-600 hover:text-gray-900 py-2">
+            <Link href="#faq" className="block py-2 text-slate-600 hover:text-slate-900" onClick={() => setIsMenuOpen(false)}>
               FAQ
             </Link>
-            <Link
-              href={process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173"}
-              className="block px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-center mb-2"
-            >
+            <Link href={appUrl} className="btn-secondary block text-center">
               Log In
             </Link>
-            <Link
-              href="/signup"
-              className="block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-center"
-            >
+            <Link href="/signup" className="btn-primary block text-center">
               Sign Up
             </Link>
           </div>
@@ -93,4 +85,3 @@ export default function NavBar() {
     </nav>
   )
 }
-

@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 const plans = [
   {
     name: 'Starter',
@@ -46,69 +48,58 @@ const plans = [
 export default function Pricing() {
   return (
     <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Simple, Transparent Pricing
-          </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Choose the plan that fits your needs
-          </p>
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-4xl font-bold text-slate-900">Simple, Transparent Pricing</h2>
+          <p className="mx-auto max-w-2xl text-xl text-slate-600">Choose the plan that fits your needs</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid gap-8 md:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`bg-white rounded-2xl border-2 p-8 ${
+              className={`rounded-2xl border-2 bg-white p-8 ${
                 plan.highlighted
-                  ? 'border-gray-900 shadow-xl scale-105'
-                  : 'border-gray-200'
+                  ? 'relative scale-105 border-brand-accent shadow-card-hover'
+                  : 'border-slate-200 shadow-card'
               }`}
             >
               {plan.highlighted && (
-                <div className="bg-gray-900 text-white text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4">
+                <div className="mb-4 inline-block rounded-full bg-brand-accent px-3 py-1 text-sm font-semibold text-white">
                   Most Popular
                 </div>
               )}
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                {plan.name}
-              </h3>
-              <p className="text-gray-600 mb-6">{plan.description}</p>
+              <h3 className="mb-2 text-2xl font-bold text-slate-900">{plan.name}</h3>
+              <p className="mb-6 text-slate-600">{plan.description}</p>
               <div className="mb-8">
-                <span className="text-5xl font-bold text-gray-900">
-                  {plan.price}
-                </span>
-                <span className="text-gray-600">{plan.period}</span>
+                <span className="text-5xl font-bold text-slate-900">{plan.price}</span>
+                <span className="text-slate-600">{plan.period}</span>
               </div>
-              <ul className="space-y-4 mb-8">
+              <ul className="mb-8 space-y-4">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start">
                     <svg
-                      className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5"
+                      className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-brand-accent"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-gray-600">{feature}</span>
+                    <span className="text-slate-600">{feature}</span>
                   </li>
                 ))}
               </ul>
-              <button
-                className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+              <Link
+                href="/signup"
+                className={`block w-full py-3 text-center font-semibold transition-colors ${
                   plan.highlighted
-                    ? 'bg-gray-900 text-white hover:bg-gray-800'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                    ? 'btn-primary'
+                    : 'btn-secondary w-full'
                 }`}
               >
                 Get Started
-              </button>
+              </Link>
             </div>
           ))}
         </div>
@@ -116,4 +107,3 @@ export default function Pricing() {
     </section>
   )
 }
-
