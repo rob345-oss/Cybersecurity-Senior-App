@@ -1,28 +1,17 @@
 interface EmptyStateProps {
-  title: string;
-  description: string;
-  icon?: string;
+  title: string
+  description: string
+  icon?: string
 }
 
-export default function EmptyState({ title, description, icon = "📋" }: EmptyStateProps) {
+export default function EmptyState({ title, description, icon = '📋' }: EmptyStateProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "48px 24px",
-        textAlign: "center",
-        color: "#64748b"
-      }}
-    >
-      <div style={{ fontSize: "48px", marginBottom: "16px" }}>{icon}</div>
-      <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600, color: "#475569" }}>
-        {title}
-      </h3>
-      <p style={{ margin: 0, fontSize: "14px", maxWidth: "400px" }}>{description}</p>
+    <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+      <div className="mb-4 text-5xl" aria-hidden>
+        {icon}
+      </div>
+      <h3 className="mb-2 text-lg font-semibold text-slate-700">{title}</h3>
+      <p className="max-w-md text-sm text-slate-500">{description}</p>
     </div>
-  );
+  )
 }
-

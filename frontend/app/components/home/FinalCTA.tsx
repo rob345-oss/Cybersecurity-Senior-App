@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
+import Link from 'next/link'
 
 export default function FinalCTA() {
   const [email, setEmail] = useState('')
@@ -10,57 +11,55 @@ export default function FinalCTA() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500))
-    
     setSubmitted(true)
     setEmail('')
     setIsSubmitting(false)
-    
-    // Reset success message after 5 seconds
     setTimeout(() => setSubmitted(false), 5000)
   }
 
   return (
     <section id="join-waitlist" className="py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-gray-900 rounded-2xl p-12 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Get Protected?
-          </h2>
-          <p className="text-xl text-gray-300 mb-8">
-            Join the waitlist to be among the first to access Titanium Systems
+      <div className="mx-auto max-w-4xl">
+        <div className="rounded-2xl bg-brand-primary p-12 text-center shadow-card-hover">
+          <h2 className="mb-4 text-4xl font-bold text-white">Ready to Get Protected?</h2>
+          <p className="mb-8 text-xl text-slate-300">
+            Join the waitlist to be among the first to access Titanium Guardian
           </p>
-          <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-            <div className="flex flex-col sm:flex-row gap-4">
+          <form onSubmit={handleSubmit} className="mx-auto max-w-md">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
-                className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+                className="input-field flex-1 text-slate-900"
                 disabled={isSubmitting}
               />
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-8 py-3 bg-white text-gray-900 rounded-lg font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary shrink-0 bg-white px-8 py-3 text-brand-primary hover:bg-slate-100 disabled:opacity-50"
               >
                 {isSubmitting ? 'Joining...' : 'Join Waitlist'}
               </button>
             </div>
             {submitted && (
-              <div className="mt-4 p-4 bg-green-500 text-white rounded-lg">
-                <p className="font-semibold">Success! You've been added to the waitlist.</p>
-                <p className="text-sm mt-1">We'll notify you when Titanium Systems is ready.</p>
+              <div className="mt-4 rounded-lg bg-teal-600 p-4 text-white">
+                <p className="font-semibold">Success! You&apos;ve been added to the waitlist.</p>
+                <p className="mt-1 text-sm">We&apos;ll notify you when Titanium Guardian is ready.</p>
               </div>
             )}
           </form>
+          <p className="mt-6 text-sm text-slate-400">
+            Or{' '}
+            <Link href="/signup" className="font-medium text-teal-300 hover:text-teal-200">
+              create an account now
+            </Link>
+          </p>
         </div>
       </div>
     </section>
   )
 }
-

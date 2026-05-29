@@ -2,23 +2,19 @@ export default function LogosStrip() {
   const logos = ['TechCrunch', 'Forbes', 'WSJ', 'The Verge']
 
   return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div className="max-w-6xl mx-auto">
-        <p className="text-center text-sm text-gray-500 mb-8 uppercase tracking-wide">
-          Trusted by leading publications
+    <section className="border-y border-slate-100 bg-white py-12 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl">
+        <p className="mb-8 text-center text-xs font-medium uppercase tracking-widest text-slate-400">
+          As featured in
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 opacity-60">
+        <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
           {logos.map((logo) => (
-            <div
-              key={logo}
-              className="text-2xl font-bold text-gray-400"
-            >
+            <span key={logo} className="text-lg font-semibold text-slate-300 transition-colors hover:text-slate-400">
               {logo}
-            </div>
+            </span>
           ))}
         </div>
       </div>
     </section>
   )
 }
-

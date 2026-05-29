@@ -102,7 +102,7 @@ export default function InboxGuard() {
   };
 
   return (
-    <div className="grid">
+    <div className="module-grid">
       <div className="card">
         <h2>Paste a message or URL</h2>
         <label>

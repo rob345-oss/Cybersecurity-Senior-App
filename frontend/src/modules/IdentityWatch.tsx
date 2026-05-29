@@ -112,7 +112,7 @@ export default function IdentityWatch() {
   };
 
   return (
-    <div className="grid">
+    <div className="module-grid">
       <div className="card">
         <h2>IdentityWatch Profile</h2>
         <label>

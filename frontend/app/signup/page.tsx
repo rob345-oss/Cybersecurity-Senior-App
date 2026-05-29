@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Shield, CheckCircle } from 'lucide-react'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -14,20 +15,13 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'
 
   const validatePassword = (pwd: string): string | null => {
-    if (pwd.length < 12) {
-      return 'Password must be at least 12 characters long'
-    }
-    if (!/[A-Z]/.test(pwd)) {
-      return 'Password must contain at least one uppercase letter'
-    }
-    if (!/[a-z]/.test(pwd)) {
-      return 'Password must contain at least one lowercase letter'
-    }
-    if (!/\d/.test(pwd)) {
-      return 'Password must contain at least one digit'
-    }
+    if (pwd.length < 12) return 'Password must be at least 12 characters long'
+    if (!/[A-Z]/.test(pwd)) return 'Password must contain at least one uppercase letter'
+    if (!/[a-z]/.test(pwd)) return 'Password must contain at least one lowercase letter'
+    if (!/\d/.test(pwd)) return 'Password must contain at least one digit'
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) {
       return 'Password must contain at least one special character'
     }
@@ -39,13 +33,11 @@ export default function SignUpPage() {
     setError('')
     setSuccess(false)
 
-    // Validate passwords match
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
     }
 
-    // Validate password strength
     const passwordError = validatePassword(password)
     if (passwordError) {
       setError(passwordError)
@@ -58,9 +50,7 @@ export default function SignUpPage() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const response = await fetch(`${apiUrl}/v1/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
           password,
@@ -78,14 +68,8 @@ export default function SignUpPage() {
       }
 
       setSuccess(true)
-      setError('')
-      
-      // Redirect to app after 2 seconds
-      setTimeout(() => {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'
-        router.push(appUrl)
-      }, 2000)
-    } catch (err) {
+      setTimeout(() => router.push(appUrl), 2000)
+    } catch {
       setError('Network error. Please check your connection and try again.')
       setLoading(false)
     }
@@ -93,20 +77,17 @@ export default function SignUpPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Account Created!</h2>
-            <p className="text-gray-600 mb-6">
-              Your account has been created successfully. Please check your email for a verification link.
+      <div className="flex min-h-screen flex-col bg-slate-50">
+        <SignupNav />
+        <div className="flex flex-1 items-center justify-center px-4 py-12">
+          <div className="auth-card max-w-md text-center">
+            <CheckCircle className="mx-auto mb-4 h-14 w-14 text-brand-accent" aria-hidden />
+            <h2 className="mb-4 text-2xl font-bold text-slate-900">Account Created!</h2>
+            <p className="mb-6 text-slate-600">
+              Please check your email for a verification link. You will be redirected to the app
+              shortly.
             </p>
-            <p className="text-sm text-gray-500 mb-4">
-              You will be redirected to the app shortly...
-            </p>
-            <Link
-              href={process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'}
-              className="inline-block px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-            >
+            <Link href={appUrl} className="btn-primary inline-block">
               Go to App Now
             </Link>
           </div>
@@ -116,132 +97,122 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-        <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">Create an Account</h2>
-          <p className="text-center text-gray-600">
-            Sign up for Titanium Guardian to get started
-          </p>
-        </div>
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <SignupNav />
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="auth-card w-full max-w-md">
+          <h2 className="mb-2 text-center text-2xl font-bold text-slate-900">Create an Account</h2>
+          <p className="mb-6 text-center text-slate-600">Sign up for Titanium Guardian to get started</p>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="label-field">
                 Email Address *
               </label>
               <input
                 id="email"
-                name="email"
                 type="email"
-                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
+                className="input-field"
                 placeholder="your.email@example.com"
               />
             </div>
-
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="fullName" className="label-field">
                 Full Name *
               </label>
               <input
                 id="fullName"
-                name="fullName"
                 type="text"
-                autoComplete="name"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
+                className="input-field"
                 placeholder="John Doe"
               />
             </div>
-
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="phone" className="label-field">
                 Phone Number (Optional)
               </label>
               <input
                 id="phone"
-                name="phone"
                 type="tel"
-                autoComplete="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
+                className="input-field"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
-
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="label-field">
                 Password *
               </label>
               <input
                 id="password"
-                name="password"
                 type="password"
-                autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
+                className="input-field"
                 placeholder="Create a strong password"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Minimum 12 characters with uppercase, lowercase, number, and special character
               </p>
             </div>
-
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="confirmPassword" className="label-field">
                 Confirm Password *
               </label>
               <input
                 id="confirmPassword"
-                name="confirmPassword"
                 type="password"
-                autoComplete="new-password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
+                className="input-field"
                 placeholder="Re-enter your password"
               />
             </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-center text-sm text-slate-600">
               Already have an account?{' '}
-              <Link href={process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'} className="font-medium text-gray-900 hover:text-gray-700">
+              <Link href={appUrl} className="font-medium text-brand-accent hover:underline">
                 Log In
               </Link>
             </p>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   )
 }
 
+function SignupNav() {
+  return (
+    <nav className="border-b border-slate-200 bg-white px-4 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 font-bold text-slate-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-primary text-white">
+            <Shield className="h-4 w-4" aria-hidden />
+          </span>
+          Titanium Guardian
+        </Link>
+        <Link href="/" className="text-sm text-slate-600 hover:text-slate-900">
+          ← Back to home
+        </Link>
+      </div>
+    </nav>
+  )
+}
