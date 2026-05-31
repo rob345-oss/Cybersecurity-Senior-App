@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -25,6 +26,7 @@ from backend.auth.models import (
     RegisterResponse,
     LoginRequest,
     LoginResponse,
+    GoogleLoginRequest,
     VerifyEmailRequest,
     VerifyEmailResponse,
     RefreshTokenRequest,
@@ -32,6 +34,7 @@ from backend.auth.models import (
     UserResponse,
 )
 from backend.auth.password import get_password_hash, verify_password
+from backend.auth.google import verify_google_id_token
 from backend.auth.jwt_handler import create_access_token, create_refresh_token, verify_token
 from backend.auth.verification import (
     generate_verification_token,
@@ -50,6 +53,37 @@ router = APIRouter(prefix="/v1/auth", tags=["authentication"])
 def set_limiter(limiter_instance) -> None:
     """Set the rate limiter instance (for future use)."""
     pass  # Rate limiting can be added later if needed
+
+
+async def _find_user_by_email(user_repo: UserRepository, email: str):
+    """Find a user by decrypted email address."""
+    encryption = get_encryption()
+    users = await user_repo.find_all()
+
+    for user in users:
+        try:
+            if encryption.decrypt(user.email_encrypted) == email:
+                return user
+        except Exception:
+            continue
+
+    return None
+
+
+def _build_login_response(user: User, email: str) -> LoginResponse:
+    """Create JWT tokens and login response for an authenticated user."""
+    token_data = {"sub": str(user.id)}
+    access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token(token_data)
+
+    return LoginResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        user_id=user.id,
+        email=email,
+        email_verified=user.email_verified,
+    )
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
@@ -151,20 +185,7 @@ async def login(
     try:
         async with DatabaseService(session=db) as db_service:
             user_repo = UserRepository(db_service)
-            
-            # Find user by encrypted email
-            # This requires checking all users - inefficient but necessary with encrypted emails
-            # In production, consider using a separate lookup table with hashed emails
-            users = await user_repo.find_all()
-            
-            user = None
-            for u in users:
-                try:
-                    if encryption.decrypt(u.email_encrypted) == login_data.email:
-                        user = u
-                        break
-                except Exception:
-                    continue
+            user = await _find_user_by_email(user_repo, login_data.email)
             
             if user is None:
                 # Use same timing as successful login to prevent user enumeration
@@ -181,22 +202,8 @@ async def login(
                     detail="Invalid email or password",
                 )
             
-            # Create tokens
-            token_data = {"sub": str(user.id)}
-            access_token = create_access_token(token_data)
-            refresh_token = create_refresh_token(token_data)
-            
-            # Decrypt email for response
             decrypted_email = encryption.decrypt(user.email_encrypted)
-            
-            return LoginResponse(
-                access_token=access_token,
-                refresh_token=refresh_token,
-                token_type="bearer",
-                user_id=user.id,
-                email=decrypted_email,
-                email_verified=user.email_verified,
-            )
+            return _build_login_response(user, decrypted_email)
     except HTTPException:
         raise
     except Exception as e:
@@ -204,6 +211,64 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to login. Please try again later.",
+        )
+
+
+@router.post("/google", response_model=LoginResponse)
+async def google_login(
+    request: Request,
+    google_data: GoogleLoginRequest,
+    db: AsyncSession = Depends(get_db),
+) -> LoginResponse:
+    """
+    Login or register using a Google ID token.
+    """
+    idinfo = verify_google_id_token(google_data.id_token)
+
+    email = idinfo.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google account did not provide an email address",
+        )
+
+    if not idinfo.get("email_verified", False):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google email address is not verified",
+        )
+
+    encryption = get_encryption()
+    full_name = idinfo.get("name")
+
+    try:
+        async with DatabaseService(session=db) as db_service:
+            user_repo = UserRepository(db_service)
+            user = await _find_user_by_email(user_repo, email)
+
+            if user is None:
+                email_encrypted = encryption.encrypt(email)
+                full_name_encrypted = encryption.encrypt(full_name) if full_name else None
+                oauth_password_hash = get_password_hash(secrets.token_urlsafe(64))
+
+                user = await user_repo.create(
+                    email_encrypted=email_encrypted,
+                    password_hash=oauth_password_hash,
+                    full_name_encrypted=full_name_encrypted,
+                    email_verified=True,
+                )
+            elif not user.email_verified:
+                user.email_verified = True
+                await user_repo.update(user)
+
+            return _build_login_response(user, email)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during Google login: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to sign in with Google. Please try again later.",
         )
 
 

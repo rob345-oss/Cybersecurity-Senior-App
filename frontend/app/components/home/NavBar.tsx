@@ -33,7 +33,7 @@ export default function NavBar() {
 
           <div className="hidden md:flex items-center space-x-4">
             <Link
-              href={process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173"}
+              href="/login"
               className="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               Log In
@@ -76,7 +76,7 @@ export default function NavBar() {
               FAQ
             </Link>
             <Link
-              href={process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173"}
+              href="/login"
               className="block px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-center mb-2"
             >
               Log In

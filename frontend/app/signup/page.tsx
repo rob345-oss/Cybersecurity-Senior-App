@@ -82,8 +82,7 @@ export default function SignUpPage() {
       
       // Redirect to app after 2 seconds
       setTimeout(() => {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'
-        router.push(appUrl)
+        router.push('/login')
       }, 2000)
     } catch (err) {
       setError('Network error. Please check your connection and try again.')
@@ -104,10 +103,10 @@ export default function SignUpPage() {
               You will be redirected to the app shortly...
             </p>
             <Link
-              href={process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'}
+              href="/login"
               className="inline-block px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
             >
-              Go to App Now
+              Go to Log In
             </Link>
           </div>
         </div>
@@ -234,7 +233,7 @@ export default function SignUpPage() {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
-              <Link href={process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5173'} className="font-medium text-gray-900 hover:text-gray-700">
+              <Link href="/login" className="font-medium text-gray-900 hover:text-gray-700">
                 Log In
               </Link>
             </p>

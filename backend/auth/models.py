@@ -98,6 +98,12 @@ class LoginResponse(BaseModel):
     email_verified: bool
 
 
+class GoogleLoginRequest(BaseModel):
+    """Google OAuth login request."""
+
+    id_token: str = Field(..., min_length=1)
+
+
 class VerifyEmailRequest(BaseModel):
     """Email verification request."""
 

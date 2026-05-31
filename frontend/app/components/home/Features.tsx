@@ -56,8 +56,7 @@ export default function Features() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature) => {
             const Icon = feature.icon
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5173"
-            const featureLink = feature.agentId ? `${appUrl}?agent=${feature.agentId}` : appUrl
+            const featureLink = feature.agentId === 'callguard' ? '/callguard' : '/login'
             
             const CardContent = (
               <div className="bg-white p-8 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full">
