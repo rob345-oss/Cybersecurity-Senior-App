@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import GoogleAuthProvider from './components/auth/GoogleAuthProvider'
+import Providers from './components/Providers'
 
 export const metadata: Metadata = {
   title: 'Titanium Systems - Your digital guardian.',
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <GoogleAuthProvider>{children}</GoogleAuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

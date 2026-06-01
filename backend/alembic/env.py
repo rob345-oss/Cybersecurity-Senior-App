@@ -5,9 +5,10 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
@@ -17,6 +18,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 # Import Base and models
 from backend.database.connection import Base
 from backend.database import models  # noqa: F401
+from backend.database.pooler import (
+    get_asyncpg_connect_args,
+    log_pooler_config,
+    strip_libpq_query_params,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -27,11 +33,20 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Get database URL from environment variable
-database_url = os.getenv(
+# Load .env from project root (same as backend.database.connection)
+env_path = Path(__file__).resolve().parents[2] / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    load_dotenv()
+
+database_url_raw = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://titanium_user:titanium_password@localhost:5432/titanium_guardian"
+    "postgresql+asyncpg://titanium_user:titanium_password@localhost:5432/titanium_guardian",
 )
+log_pooler_config(database_url_raw)
+asyncpg_connect_args = get_asyncpg_connect_args(database_url_raw)
+database_url = strip_libpq_query_params(database_url_raw)
 
 # Set sqlalchemy.url in config
 config.set_main_option("sqlalchemy.url", database_url)
@@ -84,12 +99,10 @@ async def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = database_url
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        database_url,
         poolclass=pool.NullPool,
+        connect_args=asyncpg_connect_args,
     )
 
     async with connectable.connect() as connection:

@@ -31,8 +31,12 @@ export default function GoogleSignInButton({
 
     try {
       await onSuccess(response.credential)
-    } catch {
-      onError('Failed to sign in with Google. Please try again.')
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Failed to sign in with Google. Please try again.'
+      onError(message)
     }
   }
 

@@ -1,21 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
-import { exchangeGoogleToken, getErrorMessage, storeAuthTokens } from '../utils/auth'
+import { useAuth } from '../contexts/AuthContext'
+import { exchangeGoogleToken, getErrorMessage } from '../utils/auth'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { loginWithTokens } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const completeLogin = (data: { access_token: string; refresh_token: string }) => {
-    storeAuthTokens(data)
-    router.push('/callguard')
+  const getRedirectPath = () => {
+    const next = searchParams.get('next')
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      return next
+    }
+    return '/dashboard'
+  }
+
+  const completeLogin = async (data: { access_token: string; refresh_token: string }) => {
+    await loginWithTokens(data)
+    router.push(getRedirectPath())
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +55,7 @@ export default function LoginPage() {
         return
       }
 
-      completeLogin(data)
+      await completeLogin(data)
     } catch {
       setError('Network error. Please check your connection and try again.')
       setLoading(false)
@@ -57,7 +68,7 @@ export default function LoginPage() {
 
     try {
       const data = await exchangeGoogleToken(idToken)
-      completeLogin(data)
+      await completeLogin(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in with Google.')
       setLoading(false)
@@ -155,5 +166,19 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-gray-600">Loading...</div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }

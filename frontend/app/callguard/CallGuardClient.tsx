@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { startSession, addEvent, RiskResponse } from './api'
+import { useState, useMemo, useEffect } from 'react'
+import { startSession, addEvent, getCurrentUser, RiskResponse } from './api'
 import ChipGrid from './components/ChipGrid'
 import RiskCard from './components/RiskCard'
 import EmptyState from './components/EmptyState'
@@ -21,24 +21,22 @@ const signals = [
   'caller_id_mismatch',
 ]
 
-export default function CallGuardClient() {
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuardClient.tsx:24',message:'CallGuardClient component mounting',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  }
-  // #endregion
-  
+interface CallGuardClientProps {
+  sharedSessionId?: string | null
+}
+
+export default function CallGuardClient({ sharedSessionId = null }: CallGuardClientProps) {
   const [selectedSignals, setSelectedSignals] = useState<Set<string>>(new Set())
   const [risk, setRisk] = useState<RiskResponse | null>(null)
   const [loading, setLoading] = useState(false)
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(sharedSessionId)
   const [error, setError] = useState<string | null>(null)
-  
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuardClient.tsx:32',message:'CallGuardClient state initialized',data:{signalsCount:signals.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  }
-  // #endregion
+
+  useEffect(() => {
+    if (sharedSessionId) {
+      setSessionId(sharedSessionId)
+    }
+  }, [sharedSessionId])
 
   const quickActions = useMemo(
     () => [
@@ -62,7 +60,10 @@ export default function CallGuardClient() {
     []
   )
 
-  const toggleSignal = (item: string) => {
+  const toggleSignal = async (item: string) => {
+    const activeSessionId = sessionId || sharedSessionId
+    const wasSelected = selectedSignals.has(item)
+
     setSelectedSignals((prev) => {
       const next = new Set(prev)
       if (next.has(item)) {
@@ -72,6 +73,19 @@ export default function CallGuardClient() {
       }
       return next
     })
+
+    if (activeSessionId && !wasSelected) {
+      try {
+        const result = await addEvent(activeSessionId, {
+          type: 'signal',
+          payload: { signal_key: item, source: 'manual' },
+          timestamp: new Date().toISOString(),
+        })
+        setRisk(result)
+      } catch (err) {
+        console.error('Failed to add signal during call:', err)
+      }
+    }
   }
 
   const handleStartSession = async () => {
@@ -85,39 +99,44 @@ export default function CallGuardClient() {
     setError(null)
 
     try {
-      // Get current user from API
-      const { getCurrentUser } = await import('./api')
       let userId: string
       try {
         const user = await getCurrentUser()
         userId = user.id
-      } catch (authError) {
+      } catch {
         setError('Please log in to use CallGuard. The backend requires authentication.')
         setLoading(false)
         return
       }
 
-      const response = await startSession(userId)
-      setSessionId(response.session_id)
+      const activeId = sessionId || sharedSessionId
+      const targetSessionId = activeId || (await startSession(userId)).session_id
+      if (!activeId) setSessionId(targetSessionId)
 
-      // Add all selected signals as events
       for (const signal of selectedSignals) {
         const event = {
           type: 'signal',
           payload: { signal_key: signal },
           timestamp: new Date().toISOString(),
         }
-        const result = await addEvent(response.session_id, event)
+        const result = await addEvent(targetSessionId, event)
         setRisk(result)
       }
     } catch (err) {
       console.error('CallGuard error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to start session. Please try again.'
-      
-      // Check if it's an auth error
-      if (errorMessage.includes('401') || errorMessage.includes('Authentication') || errorMessage.includes('Unauthorized')) {
+
+      if (
+        errorMessage.includes('401') ||
+        errorMessage.includes('Authentication') ||
+        errorMessage.includes('Unauthorized')
+      ) {
         setError('Please log in to use CallGuard. The backend requires authentication.')
-      } else if (errorMessage.includes('connect') || errorMessage.includes('fetch') || errorMessage.includes('Network')) {
+      } else if (
+        errorMessage.includes('connect') ||
+        errorMessage.includes('fetch') ||
+        errorMessage.includes('Network')
+      ) {
         setError(`Connection error: ${errorMessage}. Make sure the backend is running on port 8000.`)
       } else {
         setError(errorMessage)
@@ -138,20 +157,13 @@ export default function CallGuardClient() {
         await navigator.clipboard.writeText(summary)
         alert('Summary copied to clipboard')
       }
-    } catch (error) {
-      console.error('Failed to share summary:', error)
+    } catch (shareError) {
+      console.error('Failed to share summary:', shareError)
     }
   }
 
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7242/ingest/43eae5cd-d1bf-470d-b257-f562a708e1f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CallGuardClient.tsx:140',message:'CallGuardClient about to render JSX',data:{selectedSignalsCount:selectedSignals.size,hasRisk:!!risk,hasError:!!error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  }
-  // #endregion
-  
   return (
     <div className="space-y-6">
-      {/* Quick Actions Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -164,19 +176,18 @@ export default function CallGuardClient() {
         </div>
       </div>
 
-      {/* Main CallGuard Interface */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">I'm on a call — help me</h2>
-        <p className="text-sm text-gray-600 mb-6">Tap any signals you recognize while you're on the line.</p>
-        
+        <h2 className="text-2xl font-semibold text-gray-900 mb-2">I&apos;m on a call — help me</h2>
+        <p className="text-sm text-gray-600 mb-6">Tap any signals you recognize while you&apos;re on the line.</p>
+
         <ChipGrid items={signals} selected={selectedSignals} onToggle={toggleSignal} />
-        
+
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
-        
+
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <button
             className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
@@ -191,7 +202,6 @@ export default function CallGuardClient() {
         </div>
       </div>
 
-      {/* Empty State */}
       {!risk && !loading && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <EmptyState
@@ -202,7 +212,6 @@ export default function CallGuardClient() {
         </div>
       )}
 
-      {/* Risk Results */}
       {risk && (
         <div className="space-y-4">
           <RiskCard risk={risk} />
@@ -217,4 +226,3 @@ export default function CallGuardClient() {
     </div>
   )
 }
-

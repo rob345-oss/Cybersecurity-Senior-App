@@ -47,7 +47,9 @@ cp .env.example .env
 ```
 
 **Required Variables:**
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection string (Supabase pooler URL)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (for the web client)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon public key (for the web client)
 - `JWT_SECRET_KEY` - Generate with: `python -c 'import secrets; print(secrets.token_urlsafe(64))'`
 - `ENCRYPTION_KEY` - Generate with: `python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`
 

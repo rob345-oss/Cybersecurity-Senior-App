@@ -39,6 +39,8 @@ from backend.database.exceptions import DatabaseConnectionError
 from backend.database.models import User
 from backend.auth.router import router as auth_router, set_limiter
 from backend.auth.dependencies import get_current_user
+from backend.voice.router import router as voice_router
+from backend.voice.transcript_signals import detect_signals, merge_signals
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -117,7 +119,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True if "*" not in allowed_origins else False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -128,6 +130,7 @@ store = MemoryStore()
 # Include auth router
 set_limiter(limiter)
 app.include_router(auth_router)
+app.include_router(voice_router)
 
 
 class MoneyGuardAssessRequest(BaseModel):
@@ -309,6 +312,18 @@ async def append_event(
         risk = await _assess_session_risk(record.module, record.events)
         store.update_last_risk(session_id, risk)
         logger.info(f"Risk assessment completed for session {session_id}, score: {risk.score}")
+
+        if record.module == "callguard" and event.type == "signal":
+            payload = event.payload if isinstance(event.payload, dict) else {}
+            signal_key = payload.get("signal_key")
+            if signal_key:
+                from backend.voice.call_registry import call_registry
+                from backend.voice.risk_pipeline import register_manual_signal_for_session
+
+                voice_record = await call_registry.get_by_session(session_id)
+                if voice_record:
+                    await register_manual_signal_for_session(session_id, signal_key)
+
         return risk
     except Exception as e:
         logger.error(f"Error assessing risk for session {session_id}, module: {record.module}: {str(e)}", exc_info=True)
@@ -546,12 +561,30 @@ async def _assess_session_risk(module: ModuleName, events: List[Any]) -> RiskRes
         
         if module == "callguard":
             signals = [
-                get_decrypted_payload(event).get("signal_key") 
-                for event in events if event.type == "signal"
+                get_decrypted_payload(event).get("signal_key")
+                for event in events
+                if event.type == "signal"
             ]
             signals = [signal for signal in signals if signal]
-            logger.debug(f"CallGuard assessment: signals={signals}")
-            return callguard.assess(signals)
+
+            transcript_parts = []
+            for event in events:
+                if event.type == "transcript":
+                    payload = get_decrypted_payload(event)
+                    if isinstance(payload, dict):
+                        text = payload.get("full_transcript") or payload.get("text") or ""
+                        if text:
+                            transcript_parts.append(str(text))
+            full_transcript = transcript_parts[-1] if transcript_parts else ""
+            auto_signals = detect_signals(full_transcript) if full_transcript else []
+            merged_signals = merge_signals(signals, auto_signals)
+
+            call_context = {}
+            if full_transcript:
+                call_context["transcript"] = full_transcript
+
+            logger.debug(f"CallGuard assessment: signals={merged_signals}")
+            return callguard.assess(merged_signals, call_context=call_context or None)
         if module == "moneyguard":
             latest = next((event for event in reversed(events) if event.type == "assess"), None)
             payload = get_decrypted_payload(latest) if latest else {}

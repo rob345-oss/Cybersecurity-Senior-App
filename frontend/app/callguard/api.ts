@@ -1,5 +1,7 @@
 // API utilities for CallGuard page
 
+import { getAuthHeaders, getCurrentUser } from '../utils/auth'
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export interface RiskResponse {
@@ -9,7 +11,7 @@ export interface RiskResponse {
   next_action: string
   recommended_actions: RecommendedAction[]
   safe_script?: SafeScript
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface RecommendedAction {
@@ -25,21 +27,6 @@ export interface SafeScript {
 
 export interface SessionStartResponse {
   session_id: string
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-
-  if (typeof window !== 'undefined') {
-    const accessToken = sessionStorage.getItem('access_token')
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`
-    }
-  }
-
-  return headers
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
@@ -72,7 +59,7 @@ export async function startSession(userId: string): Promise<SessionStartResponse
 
 export async function addEvent(sessionId: string, event: {
   type: string
-  payload: Record<string, any>
+  payload: Record<string, unknown>
   timestamp: string
 }): Promise<RiskResponse> {
   const response = await fetch(`${BASE_URL}/v1/session/${sessionId}/event`, {
@@ -83,20 +70,4 @@ export async function addEvent(sessionId: string, event: {
   return handleResponse<RiskResponse>(response)
 }
 
-export interface UserResponse {
-  id: string
-  email: string
-  full_name?: string
-  phone?: string
-  email_verified: boolean
-  created_at: string
-}
-
-export async function getCurrentUser(): Promise<UserResponse> {
-  const response = await fetch(`${BASE_URL}/v1/auth/me`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  })
-  return handleResponse<UserResponse>(response)
-}
-
+export { getCurrentUser }

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.connection import get_db
@@ -264,6 +265,15 @@ async def google_login(
             return _build_login_response(user, email)
     except HTTPException:
         raise
+    except OperationalError as e:
+        logger.error(f"Database unavailable during Google login: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "The server could not reach the database. "
+                "Set DATABASE_URL in .env and ensure PostgreSQL is running."
+            ),
+        ) from e
     except Exception as e:
         logger.error(f"Unexpected error during Google login: {e}", exc_info=True)
         raise HTTPException(
