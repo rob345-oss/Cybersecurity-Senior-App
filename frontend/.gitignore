@@ -57,3 +57,4 @@ pnpm-debug.log*
 .env*.local
 *storybook.log
 storybook-static
+tsconfig.tsbuildinfo
