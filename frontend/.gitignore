@@ -46,6 +46,7 @@ app.*.map.json
 
 # Next.js
 .next/
+next-env.d.ts
 out/
 
 # Node

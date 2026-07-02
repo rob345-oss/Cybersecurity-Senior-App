@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ToastComponent, { Toast } from '../Toast';
 
@@ -13,6 +13,7 @@ describe('Toast', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   const renderToast = (toast: Toast) => {
@@ -127,11 +128,11 @@ describe('Toast', () => {
     renderToast(toast);
     
     // Fast-forward 5 seconds
-    vi.advanceTimersByTime(5000);
-    
-    await waitFor(() => {
-      expect(mockOnDismiss).toHaveBeenCalledWith('1');
+    act(() => {
+      vi.advanceTimersByTime(5000);
     });
+    
+    expect(mockOnDismiss).toHaveBeenCalledWith('1');
   });
 
   it('does not auto-dismiss before 5 seconds', () => {
