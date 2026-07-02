@@ -69,7 +69,7 @@ def assess(signals: Dict[str, bool]) -> RiskResponse:
 
     return build_risk_response(
         score=score,
-        reasons=reasons or ["No high-risk identity signals selected."],
+        reasons=reasons or ["No high-risk identity signals selected"],
         next_action="Start with a credit freeze and password reset if any suspicion remains.",
         recommended_actions=recommended_actions,
         safe_script=safe_script,

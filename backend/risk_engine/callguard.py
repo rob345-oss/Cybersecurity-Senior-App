@@ -179,6 +179,10 @@ SAFE_SCRIPTS: Dict[str, SafeScript] = {
         say_this="I don't grant remote access. I'll contact support using the official site.",
         if_they_push_back="No remote access. I'm ending the call now.",
     ),
+    "remote_access_request": SafeScript(
+        say_this="I don't grant remote access. I'll contact support using the official site.",
+        if_they_push_back="No remote access. I'm ending the call now.",
+    ),
     "verification_code_request": SafeScript(
         say_this="I never share verification codes.",
         if_they_push_back="Without that, I can't proceed. Goodbye.",
@@ -232,6 +236,40 @@ SAFE_SCRIPTS: Dict[str, SafeScript] = {
         if_they_push_back="Legitimate contractors provide documentation. I'm ending this call.",
     ),
 }
+
+
+SAFE_SCRIPT_PRIORITY: List[str] = [
+    "bank_impersonation",
+    "government_impersonation",
+    "tech_support",
+    "remote_access_request",
+    "gift_cards",
+    "crypto_payment",
+    "verification_code_request",
+    "grandparent_scam",
+    "family_emergency_scam",
+    "medicare_scam",
+    "health_insurance_scam",
+    "romance_scam",
+    "lottery_scam",
+    "sweepstakes_scam",
+    "investment_scam",
+    "charity_scam",
+    "contractor_scam",
+    "home_repair_scam",
+]
+
+
+def _select_safe_script_signal(
+    signals: List[str], highest_signal: Optional[str]
+) -> Optional[str]:
+    unique_signals = list(dict.fromkeys(signals))
+    for signal in SAFE_SCRIPT_PRIORITY:
+        if signal in unique_signals and signal in SAFE_SCRIPTS:
+            return signal
+    if highest_signal and highest_signal in SAFE_SCRIPTS:
+        return highest_signal
+    return None
 
 
 # Helper functions
@@ -565,6 +603,8 @@ def _rule_based_assess(signals: List[str]) -> RiskResponse:
     """
     if not signals:
         signals = []
+
+    signals = list(dict.fromkeys(signals))
     
     score = 0
     reasons: List[str] = []
@@ -585,7 +625,8 @@ def _rule_based_assess(signals: List[str]) -> RiskResponse:
             highest_weight = weight
 
     recommended_actions = _get_default_recommended_actions()
-    safe_script = SAFE_SCRIPTS.get(highest_signal) if highest_signal else None
+    script_signal = _select_safe_script_signal(signals, highest_signal)
+    safe_script = SAFE_SCRIPTS.get(script_signal) if script_signal else None
     next_action = "Verify the caller using an official phone number before sharing anything."
     
     metadata: Dict[str, Any] = {
