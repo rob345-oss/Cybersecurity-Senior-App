@@ -2,6 +2,7 @@ import NavBar from './components/home/NavBar'
 import Hero from './components/home/Hero'
 import LogosStrip from './components/home/LogosStrip'
 import Features from './components/home/Features'
+import LessonLibraryPromo from './components/home/LessonLibraryPromo'
 import HowItWorks from './components/home/HowItWorks'
 import Pricing from './components/home/Pricing'
 import FAQ from './components/home/FAQ'
@@ -15,6 +16,7 @@ export default function Home() {
       <Hero />
       <LogosStrip />
       <Features />
+      <LessonLibraryPromo />
       <HowItWorks />
       <Pricing />
       <FAQ />

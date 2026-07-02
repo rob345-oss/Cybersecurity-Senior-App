@@ -34,8 +34,7 @@ class FeatureGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Semantics(
-          heading: true,
-          level: 2,
+          header: true,
           child: Text(
             'A Titanium Systems command center',
             style: titleStyle?.copyWith(

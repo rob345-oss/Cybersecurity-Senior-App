@@ -1,10 +1,15 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import Link from 'next/link'
 import { startSession, addEvent, getCurrentUser, RiskResponse } from './api'
 import ChipGrid from './components/ChipGrid'
 import RiskCard from './components/RiskCard'
 import EmptyState from './components/EmptyState'
+import { getLessonPath } from '../lib/lessonPaths'
+
+const TECH_SUPPORT_LESSON_SLUG = 'how-to-spot-tech-support-scams'
+const TECH_SUPPORT_SIGNALS = new Set(['tech_support', 'remote_access_request'])
 
 const signals = [
   'urgency',
@@ -147,6 +152,9 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
     }
   }
 
+  const showTechSupportLesson =
+    [...selectedSignals].some((signal) => TECH_SUPPORT_SIGNALS.has(signal))
+
   const shareSummary = async () => {
     if (!risk) return
     const summary = `Titanium Guardian CallGuard summary: ${risk.level} risk score ${risk.score}.`
@@ -181,6 +189,20 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
         <p className="text-sm text-gray-600 mb-6">Tap any signals you recognize while you&apos;re on the line.</p>
 
         <ChipGrid items={signals} selected={selectedSignals} onToggle={toggleSignal} />
+
+        {showTechSupportLesson && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900">
+              Tech support scams often use urgency, remote access requests, and fake company names.
+            </p>
+            <Link
+              href={getLessonPath(TECH_SUPPORT_LESSON_SLUG)}
+              className="inline-block mt-2 text-sm font-medium text-blue-800 hover:underline"
+            >
+              Learn the warning signs →
+            </Link>
+          </div>
+        )}
 
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">

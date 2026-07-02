@@ -21,6 +21,20 @@ const nextConfig = {
   turbopack: {
     root: frontendDir,
   },
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/lessons',
+        destination: '/lessons',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/lessons/:slug',
+        destination: '/lessons/:slug',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

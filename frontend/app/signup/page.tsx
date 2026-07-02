@@ -122,6 +122,14 @@ export default function SignUpPage() {
           <p className="text-center text-gray-600">
             Sign up for Titanium Guardian to get started
           </p>
+          <div className="mt-4 text-center">
+            <Link
+              href="/lessons"
+              className="inline-block px-4 py-2 text-sm font-medium text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Browse Lesson Library
+            </Link>
+          </div>
         </div>
 
         {error && (

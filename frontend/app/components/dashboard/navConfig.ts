@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { DollarSign, LayoutDashboard, Mail, Phone, User } from 'lucide-react'
+import { BookOpen, DollarSign, LayoutDashboard, Mail, Phone, User } from 'lucide-react'
 
 export interface DashboardNavItem {
   href: string
@@ -34,6 +34,12 @@ export const dashboardNavItems: DashboardNavItem[] = [
     icon: User,
     description: 'Monitor identity signals and escalation steps',
   },
+  {
+    href: '/lessons',
+    label: 'Lesson Library',
+    icon: BookOpen,
+    description: 'Learn how to spot common scams',
+  },
 ]
 
 export const modulePageMeta: Record<
@@ -62,5 +68,9 @@ export const modulePageMeta: Record<
     title: 'IdentityWatch',
     description: 'Monitor identity signals and escalation steps',
     comingSoon: true,
+  },
+  '/lessons': {
+    title: 'Lesson Library',
+    description: 'Short, practical lessons to help you spot scams',
   },
 }
