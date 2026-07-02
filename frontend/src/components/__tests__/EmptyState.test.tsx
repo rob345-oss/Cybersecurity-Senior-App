@@ -97,7 +97,7 @@ describe('EmptyState', () => {
   });
 
   it('handles empty strings', () => {
-    render(
+    const { container } = render(
       <EmptyState
         title=""
         description=""
@@ -105,7 +105,7 @@ describe('EmptyState', () => {
     );
     
     // Should still render without errors
-    const emptyState = screen.getByRole('generic');
+    const emptyState = container.firstChild;
     expect(emptyState).toBeInTheDocument();
   });
 });
