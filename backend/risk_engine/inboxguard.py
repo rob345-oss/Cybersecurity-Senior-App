@@ -50,6 +50,12 @@ def _url_flags(url: str) -> List[str]:
     return flags
 
 
+def _contains_term(text: str, term: str) -> bool:
+    if len(term) <= 3:
+        return re.search(rf"\b{re.escape(term)}\b", text) is not None
+    return term in text
+
+
 def analyze_text(text: str, channel: str) -> RiskResponse:
     score = 0
     reasons: List[str] = []
@@ -67,7 +73,7 @@ def analyze_text(text: str, channel: str) -> RiskResponse:
     if "attachment" in lower:
         score += 10
         reasons.append("Attachment mentioned")
-    entities = [term for term in IMPERSONATION_TERMS if term in lower]
+    entities = [term for term in IMPERSONATION_TERMS if _contains_term(lower, term)]
     if entities:
         score += 20
         reasons.append("Impersonation terms detected")
