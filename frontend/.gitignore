@@ -55,3 +55,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .env*.local
+*storybook.log
+storybook-static
+tsconfig.tsbuildinfo

@@ -5,12 +5,91 @@
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
+
+  /* Titanium Guardian trust palette */
+  --primary: #1e40af;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1d4ed8;
+  --primary-ring: #3b82f6;
+
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --secondary-hover: #e2e8f0;
+  --secondary-ring: #64748b;
+
+  --success: #15803d;
+  --success-foreground: #ffffff;
+  --success-hover: #166534;
+  --success-ring: #22c55e;
+
+  --warning: #b45309;
+  --warning-foreground: #ffffff;
+  --warning-hover: #92400e;
+  --warning-ring: #f59e0b;
+
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --destructive-hover: #991b1b;
+  --destructive-ring: #ef4444;
+
+  --outline: #cbd5e1;
+  --outline-hover: #f8fafc;
+  --outline-ring: #1e40af;
+
+  --ghost-hover: #f1f5f9;
+  --ghost-ring: #1e40af;
+
+  --link: #1e40af;
+  --link-hover: #1d4ed8;
+  --link-ring: #3b82f6;
+
+  --gradient-from: #1e40af;
+  --gradient-to: #0f766e;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0f172a;
     --foreground: #f8fafc;
+
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --primary-hover: #60a5fa;
+    --primary-ring: #93c5fd;
+
+    --secondary: #1e293b;
+    --secondary-foreground: #f1f5f9;
+    --secondary-hover: #334155;
+    --secondary-ring: #94a3b8;
+
+    --success: #22c55e;
+    --success-foreground: #052e16;
+    --success-hover: #4ade80;
+    --success-ring: #86efac;
+
+    --warning: #f59e0b;
+    --warning-foreground: #451a03;
+    --warning-hover: #fbbf24;
+    --warning-ring: #fcd34d;
+
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --destructive-hover: #f87171;
+    --destructive-ring: #fca5a5;
+
+    --outline: #475569;
+    --outline-hover: #1e293b;
+    --outline-ring: #60a5fa;
+
+    --ghost-hover: #1e293b;
+    --ghost-ring: #60a5fa;
+
+    --link: #60a5fa;
+    --link-hover: #93c5fd;
+    --link-ring: #93c5fd;
+
+    --gradient-from: #1e40af;
+    --gradient-to: #0d9488;
   }
 }
 
@@ -25,4 +104,3 @@ body {
     text-wrap: balance;
   }
 }
-
