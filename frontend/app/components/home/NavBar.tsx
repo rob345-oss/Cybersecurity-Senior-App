@@ -57,7 +57,7 @@ export default function NavBar() {
 
           <div className="hidden md:flex items-center space-x-8">
             <Link
-              href="/dashboard/lessons"
+              href="/lessons"
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               Lesson Library
@@ -98,7 +98,7 @@ export default function NavBar() {
         {isMenuOpen && (
           <div className="md:hidden pb-4 space-y-3">
             <Link
-              href="/dashboard/lessons"
+              href="/lessons"
               className="block text-gray-600 hover:text-gray-900 py-2"
               onClick={() => setIsMenuOpen(false)}
             >

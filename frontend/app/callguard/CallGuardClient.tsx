@@ -6,6 +6,7 @@ import { startSession, addEvent, getCurrentUser, RiskResponse } from './api'
 import ChipGrid from './components/ChipGrid'
 import RiskCard from './components/RiskCard'
 import EmptyState from './components/EmptyState'
+import { getLessonPath } from '../lib/lessonPaths'
 
 const TECH_SUPPORT_LESSON_SLUG = 'how-to-spot-tech-support-scams'
 const TECH_SUPPORT_SIGNALS = new Set(['tech_support', 'remote_access_request'])
@@ -195,7 +196,7 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
               Tech support scams often use urgency, remote access requests, and fake company names.
             </p>
             <Link
-              href={`/dashboard/lessons/${TECH_SUPPORT_LESSON_SLUG}`}
+              href={getLessonPath(TECH_SUPPORT_LESSON_SLUG)}
               className="inline-block mt-2 text-sm font-medium text-blue-800 hover:underline"
             >
               Learn the warning signs →

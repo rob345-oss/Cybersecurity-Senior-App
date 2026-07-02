@@ -30,7 +30,7 @@ const quickActions = [
   {
     title: 'Learn how to spot scams',
     subtitle: 'Short lessons on common scam types',
-    href: '/dashboard/lessons',
+    href: '/lessons',
   },
 ]
 
@@ -66,7 +66,7 @@ const guards = [
   {
     title: 'Lesson Library',
     description: 'Learn how to recognize scams before they happen.',
-    href: '/dashboard/lessons',
+    href: '/lessons',
     icon: BookOpen,
     available: true,
   },

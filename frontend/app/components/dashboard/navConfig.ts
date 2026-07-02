@@ -35,7 +35,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description: 'Monitor identity signals and escalation steps',
   },
   {
-    href: '/dashboard/lessons',
+    href: '/lessons',
     label: 'Lesson Library',
     icon: BookOpen,
     description: 'Learn how to spot common scams',
@@ -69,7 +69,7 @@ export const modulePageMeta: Record<
     description: 'Monitor identity signals and escalation steps',
     comingSoon: true,
   },
-  '/dashboard/lessons': {
+  '/lessons': {
     title: 'Lesson Library',
     description: 'Short, practical lessons to help you spot scams',
   },
