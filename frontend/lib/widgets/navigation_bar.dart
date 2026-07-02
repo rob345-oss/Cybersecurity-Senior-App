@@ -49,7 +49,7 @@ class HomeNavigationBar extends StatelessWidget {
             label: 'Navigation menu',
             child: const Wrap(
               spacing: 16,
-              children: const [
+              children: [
                 _NavItem(label: 'Platform'),
                 _NavItem(label: 'Solutions'),
                 _NavItem(label: 'Resources'),
