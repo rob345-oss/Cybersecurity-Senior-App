@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { DollarSign, Mail, Phone, Shield, User, Users } from 'lucide-react'
+import { BookOpen, DollarSign, Mail, Phone, Shield, User, Users } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import { getDisplayName } from '../utils/auth'
@@ -26,6 +26,11 @@ const quickActions = [
     title: 'Identity protection steps',
     subtitle: 'Freeze credit checklist',
     href: '/dashboard/identitywatch',
+  },
+  {
+    title: 'Learn how to spot scams',
+    subtitle: 'Short lessons on common scam types',
+    href: '/dashboard/lessons',
   },
 ]
 
@@ -57,6 +62,13 @@ const guards = [
     href: '/dashboard/identitywatch',
     icon: User,
     available: false,
+  },
+  {
+    title: 'Lesson Library',
+    description: 'Learn how to recognize scams before they happen.',
+    href: '/dashboard/lessons',
+    icon: BookOpen,
+    available: true,
   },
   {
     title: 'CareCircle',
