@@ -13,13 +13,12 @@ class FooterSection extends StatelessWidget {
         ),
       ),
       child: Semantics(
-        footer: true,
+        label: 'Footer section',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Semantics(
-              heading: true,
-              level: 2,
+              header: true,
               child: Text(
                 'Ready to elevate your defenses?',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(

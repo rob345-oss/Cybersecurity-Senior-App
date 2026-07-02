@@ -50,8 +50,8 @@ class TestScoreToLevel:
         assert score_to_level(17) == "low"
     
     def test_medium_risk_scores(self):
-        """Test scores 35-69 map to 'medium' risk."""
-        assert score_to_level(35) == "medium"
+        """Test scores 36-69 map to 'medium' risk."""
+        assert score_to_level(36) == "medium"
         assert score_to_level(50) == "medium"
         assert score_to_level(69) == "medium"
     
@@ -64,7 +64,8 @@ class TestScoreToLevel:
     def test_boundary_values(self):
         """Test boundary values between risk levels."""
         assert score_to_level(34) == "low"
-        assert score_to_level(35) == "medium"
+        assert score_to_level(35) == "low"
+        assert score_to_level(36) == "medium"
         assert score_to_level(69) == "medium"
         assert score_to_level(70) == "high"
 

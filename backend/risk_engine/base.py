@@ -12,7 +12,7 @@ def clamp_score(score: int) -> int:
 def score_to_level(score: int) -> RiskLevel:
     if score >= 70:
         return "high"
-    if score >= 35:
+    if score > 35:
         return "medium"
     return "low"
 
