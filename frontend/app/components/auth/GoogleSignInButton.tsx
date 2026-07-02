@@ -1,6 +1,7 @@
 'use client'
 
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
+import { SocialLoginButton } from '@/app/components/ui/button'
 
 interface GoogleSignInButtonProps {
   onSuccess: (idToken: string) => Promise<void>
@@ -17,9 +18,13 @@ export default function GoogleSignInButton({
 
   if (!clientId) {
     return (
-      <p className="text-sm text-gray-500 text-center">
-        Google sign-in is not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment.
-      </p>
+      <SocialLoginButton
+        provider="google"
+        disabled
+        onProviderClick={() =>
+          onError('Google sign-in is not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment.')
+        }
+      />
     )
   }
 
