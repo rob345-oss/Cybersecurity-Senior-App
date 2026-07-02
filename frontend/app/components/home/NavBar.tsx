@@ -7,10 +7,11 @@ import { useAuth } from '../../contexts/AuthContext'
 export default function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { isAuthenticated, loading, logout } = useAuth()
+  const showAsAuthenticated = !loading && isAuthenticated
 
   const authLinks = (
     <>
-      {isAuthenticated ? (
+      {showAsAuthenticated ? (
         <>
           <Link
             href="/dashboard"
@@ -71,7 +72,7 @@ export default function NavBar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            {!loading && authLinks}
+            {authLinks}
           </div>
 
           <button
@@ -103,9 +104,8 @@ export default function NavBar() {
             <Link href="#faq" className="block text-gray-600 hover:text-gray-900 py-2">
               FAQ
             </Link>
-            {!loading && (
-              <div className="space-y-2 pt-2">
-                {isAuthenticated ? (
+            <div className="space-y-2 pt-2">
+              {showAsAuthenticated ? (
                   <>
                     <Link
                       href="/dashboard"
@@ -141,8 +141,7 @@ export default function NavBar() {
                     </Link>
                   </>
                 )}
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
