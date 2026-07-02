@@ -123,9 +123,60 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <div>Loading...</div>
-      </div>
+      <ToastProvider>
+        <div style={{ minHeight: "100vh", backgroundColor: "#f5f5f5" }}>
+          <div style={{ padding: "1rem", borderBottom: "1px solid #ddd", backgroundColor: "white" }}>
+            <h1 style={{ margin: 0 }}>Titanium Guardian</h1>
+          </div>
+          <div style={{ padding: "1rem", textAlign: "center", backgroundColor: "white", borderBottom: "1px solid #ddd" }}>
+            <button
+              style={{
+                margin: "0 0.5rem",
+                padding: "0.5rem 1rem",
+                backgroundColor: "#007bff",
+                color: "white",
+                border: "1px solid #007bff",
+                borderRadius: "4px",
+                cursor: "default",
+              }}
+              disabled
+            >
+              Login
+            </button>
+            <button
+              style={{
+                margin: "0 0.5rem",
+                padding: "0.5rem 1rem",
+                backgroundColor: "transparent",
+                color: "#007bff",
+                border: "1px solid #007bff",
+                borderRadius: "4px",
+                cursor: "default",
+              }}
+              disabled
+            >
+              Register
+            </button>
+            <button
+              style={{
+                margin: "0 0.5rem",
+                padding: "0.5rem 1rem",
+                backgroundColor: "transparent",
+                color: "#007bff",
+                border: "1px solid #007bff",
+                borderRadius: "4px",
+                cursor: "default",
+              }}
+              disabled
+            >
+              Verify Email
+            </button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "2rem" }}>
+            <div>Loading...</div>
+          </div>
+        </div>
+      </ToastProvider>
     );
   }
 

@@ -7,7 +7,7 @@ class FeatureGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final features = [
+    const features = [
       _FeatureCardData(
         title: 'Unified Telemetry',
         description: 'Collect endpoint, cloud, identity, and OT signals in real time.',
@@ -34,8 +34,8 @@ class FeatureGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Semantics(
-          heading: true,
-          level: 2,
+          header: true,
+          label: 'A Titanium Systems command center',
           child: Text(
             'A Titanium Systems command center',
             style: titleStyle?.copyWith(

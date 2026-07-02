@@ -179,6 +179,10 @@ SAFE_SCRIPTS: Dict[str, SafeScript] = {
         say_this="I don't grant remote access. I'll contact support using the official site.",
         if_they_push_back="No remote access. I'm ending the call now.",
     ),
+    "remote_access_request": SafeScript(
+        say_this="I don't grant remote access. I'll contact support using the official site.",
+        if_they_push_back="No remote access. I'm ending the call now.",
+    ),
     "verification_code_request": SafeScript(
         say_this="I never share verification codes.",
         if_they_push_back="Without that, I can't proceed. Goodbye.",
@@ -565,6 +569,14 @@ def _rule_based_assess(signals: List[str]) -> RiskResponse:
     """
     if not signals:
         signals = []
+
+    seen_signals = set()
+    unique_signals: List[str] = []
+    for signal in signals:
+        if signal not in seen_signals:
+            seen_signals.add(signal)
+            unique_signals.append(signal)
+    signals = unique_signals
     
     score = 0
     reasons: List[str] = []

@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
+import NavBar from '../components/home/NavBar'
 import { useAuth } from '../contexts/AuthContext'
 import { exchangeGoogleToken, getErrorMessage } from '../utils/auth'
 
@@ -76,7 +77,9 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <>
+      <NavBar />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div>
           <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">Log In</h2>
@@ -166,6 +169,7 @@ function LoginForm() {
         </form>
       </div>
     </div>
+    </>
   )
 }
 
@@ -173,9 +177,12 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-gray-600">Loading...</div>
-        </div>
+        <>
+          <NavBar />
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="text-gray-600">Loading...</div>
+          </div>
+        </>
       }
     >
       <LoginForm />

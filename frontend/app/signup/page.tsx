@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import NavBar from '../components/home/NavBar'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -92,7 +93,9 @@ export default function SignUpPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <>
+        <NavBar />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Account Created!</h2>
@@ -111,11 +114,14 @@ export default function SignUpPage() {
           </div>
         </div>
       </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <>
+      <NavBar />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div>
           <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">Create an Account</h2>
@@ -241,6 +247,7 @@ export default function SignUpPage() {
         </form>
       </div>
     </div>
+    </>
   )
 }
 
