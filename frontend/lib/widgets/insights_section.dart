@@ -34,8 +34,7 @@ class InsightsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Semantics(
-            heading: true,
-            level: 2,
+            header: true,
             child: Text(
               'Built for Titanium-scale teams',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(

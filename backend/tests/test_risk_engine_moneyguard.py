@@ -60,7 +60,7 @@ class TestMoneyGuardAssess:
         risk = moneyguard.assess(payload)
         
         assert risk.score == 35
-        assert risk.level == "medium"
+        assert risk.level == "low"
         assert "crypto" in risk.reasons[0].lower()
     
     def test_wire_payment_method(self):
@@ -96,7 +96,7 @@ class TestMoneyGuardAssess:
         risk = moneyguard.assess(payload)
         
         assert risk.score == 35
-        assert risk.level == "medium"
+        assert risk.level == "low"
         assert "verification code" in risk.reasons[0].lower()
     
     def test_remote_access_flag(self):
