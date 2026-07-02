@@ -154,9 +154,9 @@ class HeroSection extends StatelessWidget {
                     color: const Color(0xFF0F1B2D),
                     border: Border.all(color: Colors.white10),
                   ),
-                  child: const Semantics(
+                  child: Semantics(
                     label: 'Automated response summary',
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
