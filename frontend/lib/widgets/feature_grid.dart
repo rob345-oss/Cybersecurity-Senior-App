@@ -8,22 +8,22 @@ class FeatureGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = [
-      _FeatureCardData(
+      const _FeatureCardData(
         title: 'Unified Telemetry',
         description: 'Collect endpoint, cloud, identity, and OT signals in real time.',
         icon: Icons.hub_outlined,
       ),
-      _FeatureCardData(
+      const _FeatureCardData(
         title: 'Adaptive Response',
         description: 'Trigger orchestrated actions and playbooks across your stack.',
         icon: Icons.bolt_outlined,
       ),
-      _FeatureCardData(
+      const _FeatureCardData(
         title: 'Executive Reporting',
         description: 'Translate risk into business outcomes with board-ready insights.',
         icon: Icons.analytics_outlined,
       ),
-      _FeatureCardData(
+      const _FeatureCardData(
         title: 'Continuous Validation',
         description: 'Simulate attack paths and validate controls without downtime.',
         icon: Icons.route_outlined,

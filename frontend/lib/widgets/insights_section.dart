@@ -6,17 +6,17 @@ class InsightsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final insights = [
-      _InsightCardData(
+      const _InsightCardData(
         title: 'Identity-first protection',
         description:
             'Map every user, device, and workload to a verified trust score.',
       ),
-      _InsightCardData(
+      const _InsightCardData(
         title: 'Defense in depth',
         description:
             'Layered segmentation and micro-perimeters keep threats contained.',
       ),
-      _InsightCardData(
+      const _InsightCardData(
         title: 'Always-on assurance',
         description:
             'Continuous control validation keeps compliance teams aligned.',
