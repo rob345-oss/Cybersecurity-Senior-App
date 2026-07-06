@@ -18,30 +18,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from backend.main import app
-from backend.storage.memory import MemoryStore
-
-
-@pytest.fixture
-def client():
-    """Create a test client with a fresh store instance."""
-    from backend import main
-    main.store = MemoryStore(session_ttl_hours=0)  # Disable TTL for tests
-    return TestClient(app)
-
-
-@pytest.fixture
-def api_key():
-    """Get API key from environment or use empty string for testing."""
-    import os
-    return os.getenv("API_KEY", "")
-
-
-@pytest.fixture
-def headers(api_key):
-    """Create headers with API key if needed."""
-    if api_key:
-        return {"X-API-Key": api_key}
-    return {}
 
 
 class TestCallGuardEndpoints:

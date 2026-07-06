@@ -27,7 +27,7 @@ class TestIdentityWatchAssess:
         assert isinstance(risk, RiskResponse)
         assert risk.score == 0
         assert risk.level == "low"
-        assert "No high-risk identity signals selected" in risk.reasons
+        assert "No high-risk identity signals selected." in risk.reasons
         assert len(risk.recommended_actions) > 0
         assert risk.safe_script is not None
     
@@ -287,5 +287,5 @@ class TestIdentityWatchAssess:
         
         assert risk.score == 0
         assert risk.level == "low"
-        assert "No high-risk identity signals selected" in risk.reasons[0]
+        assert "No high-risk identity signals selected." in risk.reasons[0]
 

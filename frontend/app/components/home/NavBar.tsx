@@ -62,6 +62,9 @@ export default function NavBar() {
             <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">
               How It Works
             </Link>
+            <Link href="#protected-numbers" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Phone Numbers
+            </Link>
             <Link href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
               Pricing
             </Link>
@@ -96,6 +99,9 @@ export default function NavBar() {
             </Link>
             <Link href="#how-it-works" className="block text-gray-600 hover:text-gray-900 py-2">
               How It Works
+            </Link>
+            <Link href="#protected-numbers" className="block text-gray-600 hover:text-gray-900 py-2">
+              Phone Numbers
             </Link>
             <Link href="#pricing" className="block text-gray-600 hover:text-gray-900 py-2">
               Pricing

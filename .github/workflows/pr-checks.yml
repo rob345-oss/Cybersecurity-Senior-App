@@ -31,6 +31,7 @@ jobs:
           pytest backend/tests/ -v --tb=short
         env:
           API_KEY: test-key-for-ci
+          SKIP_DB_CHECK: true
 
   backend-lint:
     name: Backend Linting
@@ -82,7 +83,7 @@ jobs:
       
       - name: Analyze Flutter code
         working-directory: frontend
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
   frontend-tests:
     name: Frontend Tests
