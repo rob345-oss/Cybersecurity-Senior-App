@@ -41,6 +41,9 @@ from backend.auth.router import router as auth_router, set_limiter
 from backend.auth.dependencies import get_current_user
 from backend.voice.router import router as voice_router
 from backend.voice.transcript_signals import detect_signals, merge_signals
+from backend.verification.router import router as verification_router
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -119,7 +122,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True if "*" not in allowed_origins else False,
-    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "OPTIONS", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -131,6 +134,16 @@ store = MemoryStore()
 set_limiter(limiter)
 app.include_router(auth_router)
 app.include_router(voice_router)
+app.include_router(verification_router)
+
+# Serve verification screenshot uploads
+_upload_root = Path(os.getenv("VERIFICATION_UPLOAD_DIR", "uploads/verification")).resolve()
+_upload_root.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/uploads/verification",
+    StaticFiles(directory=str(_upload_root)),
+    name="verification_uploads",
+)
 
 
 class MoneyGuardAssessRequest(BaseModel):

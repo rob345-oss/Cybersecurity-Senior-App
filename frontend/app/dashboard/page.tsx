@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { DollarSign, Mail, Phone, Shield, User, Users } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
+import VerificationDashboardCards from '../components/dashboard/VerificationDashboardCards'
 import { getDisplayName } from '../utils/auth'
 
 const quickActions = [
@@ -11,6 +12,11 @@ const quickActions = [
     title: "I'm on a call — help me",
     subtitle: 'Live coaching for suspicious callers',
     href: '/dashboard/callguard',
+  },
+  {
+    title: 'Ask family to check this',
+    subtitle: 'Send a suspicious interaction for trusted review',
+    href: '/dashboard/verify',
   },
   {
     title: 'Before I send money',
@@ -61,10 +67,10 @@ const guards = [
   {
     title: 'CareCircle',
     description: 'Connect with trusted family members for support.',
-    href: null,
+    href: '/dashboard/family',
     icon: Users,
-    available: false,
-    disabled: true,
+    available: true,
+    disabled: false,
   },
 ]
 
@@ -106,6 +112,8 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
+
+      <VerificationDashboardCards />
 
       <section>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Your guards</h2>
