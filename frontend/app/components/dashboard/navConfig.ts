@@ -1,5 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
-import { DollarSign, LayoutDashboard, Mail, Phone, User } from 'lucide-react'
+import {
+  DollarSign,
+  LayoutDashboard,
+  Mail,
+  Phone,
+  ShieldCheck,
+  User,
+  Users,
+} from 'lucide-react'
 
 export interface DashboardNavItem {
   href: string
@@ -10,6 +18,18 @@ export interface DashboardNavItem {
 
 export const dashboardNavItems: DashboardNavItem[] = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  {
+    href: '/dashboard/verify',
+    label: 'Ask Family',
+    icon: ShieldCheck,
+    description: 'Send a suspicious interaction for trusted review',
+  },
+  {
+    href: '/dashboard/family',
+    label: 'CareCircle',
+    icon: Users,
+    description: 'Trusted contacts and family reviews',
+  },
   {
     href: '/dashboard/callguard',
     label: 'CallGuard',
@@ -43,6 +63,14 @@ export const modulePageMeta: Record<
   '/dashboard': {
     title: 'Dashboard',
     description: 'Your security command center',
+  },
+  '/dashboard/verify': {
+    title: 'Ask Family',
+    description: 'Trusted contact verification',
+  },
+  '/dashboard/family': {
+    title: 'CareCircle',
+    description: 'Trusted contacts and family reviews',
   },
   '/dashboard/callguard': {
     title: 'CallGuard',

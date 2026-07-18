@@ -8,56 +8,68 @@ class HomeNavigationBar extends StatelessWidget {
     return Semantics(
       header: true,
       label: 'Main navigation bar',
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Semantics(
-            label: 'Titanium Systems logo and company name',
-            child: Row(
-              children: [
-                Semantics(
-                  label: 'Security shield icon representing Titanium Systems',
-                  excludeSemantics: true,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF00D4FF), Color(0xFF0077FF)],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 720;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Semantics(
+                  label: 'Titanium Systems logo and company name',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Semantics(
+                        label: 'Security shield icon representing Titanium Systems',
+                        excludeSemantics: true,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00D4FF), Color(0xFF0077FF)],
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.security,
+                            color: Colors.white,
+                            semanticLabel: 'Security shield icon',
+                          ),
+                        ),
                       ),
-                    ),
-                    child: const Icon(
-                      Icons.security,
-                      color: Colors.white,
-                      semanticLabel: 'Security shield icon',
-                    ),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          'Titanium Systems',
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.6,
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  'Titanium Systems',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
-                      ),
+              ),
+              if (!compact)
+                Semantics(
+                  label: 'Navigation menu',
+                  child: const Wrap(
+                    spacing: 16,
+                    children: [
+                      _NavItem(label: 'Platform'),
+                      _NavItem(label: 'Solutions'),
+                      _NavItem(label: 'Resources'),
+                      _NavItem(label: 'Contact'),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-          Semantics(
-            label: 'Navigation menu',
-            child: Wrap(
-              spacing: 16,
-              children: const [
-                _NavItem(label: 'Platform'),
-                _NavItem(label: 'Solutions'),
-                _NavItem(label: 'Resources'),
-                _NavItem(label: 'Contact'),
-              ],
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

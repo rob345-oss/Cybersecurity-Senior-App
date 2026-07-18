@@ -179,6 +179,10 @@ SAFE_SCRIPTS: Dict[str, SafeScript] = {
         say_this="I don't grant remote access. I'll contact support using the official site.",
         if_they_push_back="No remote access. I'm ending the call now.",
     ),
+    "remote_access_request": SafeScript(
+        say_this="I don't grant remote access to my computer.",
+        if_they_push_back="No remote access. I'm ending the call now.",
+    ),
     "verification_code_request": SafeScript(
         say_this="I never share verification codes.",
         if_they_push_back="Without that, I can't proceed. Goodbye.",
@@ -565,21 +569,28 @@ def _rule_based_assess(signals: List[str]) -> RiskResponse:
     """
     if not signals:
         signals = []
-    
+
+    # Deduplicate while preserving order so repeated taps do not inflate score
+    seen = set()
+    unique_signals: List[str] = []
+    for signal in signals:
+        if not isinstance(signal, str) or signal in seen:
+            continue
+        seen.add(signal)
+        unique_signals.append(signal)
+    signals = unique_signals
+
     score = 0
     reasons: List[str] = []
     highest_signal: Optional[str] = None
     highest_weight = 0
-    
+
     for signal in signals:
-        if not isinstance(signal, str):
-            continue
-            
         weight = SIGNAL_WEIGHTS.get(signal, 0)
         if weight > 0:
             score += weight
             reasons.append(f"Signal detected: {signal.replace('_', ' ')}")
-        
+
         if weight > highest_weight:
             highest_signal = signal
             highest_weight = weight
