@@ -7,7 +7,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -16,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-verification-api-tests-only")
+os.environ.setdefault(
+    "JWT_SECRET_KEY", "test-secret-key-for-verification-api-tests-only"
+)
 os.environ.setdefault("SKIP_DB_CHECK", "true")
 os.environ.setdefault("ENABLE_DATA_ENCRYPTION", "false")
 
@@ -35,7 +36,9 @@ def client():
 
     user_a = SimpleNamespace(id=uuid4(), email_encrypted="a", full_name_encrypted=None)
     user_b = SimpleNamespace(id=uuid4(), email_encrypted="b", full_name_encrypted=None)
-    outsider = SimpleNamespace(id=uuid4(), email_encrypted="c", full_name_encrypted=None)
+    outsider = SimpleNamespace(
+        id=uuid4(), email_encrypted="c", full_name_encrypted=None
+    )
 
     request_id = uuid4()
     contact_id = uuid4()
@@ -54,7 +57,10 @@ def client():
         screenshot_url=None,
         risk_score=85,
         risk_level="critical",
-        risk_reasons=["Requests payment with gift cards", "Uses urgent or threatening language"],
+        risk_reasons=[
+            "Requests payment with gift cards",
+            "Uses urgent or threatening language",
+        ],
         status="pending",
         reviewer_notes=None,
         reviewed_at=None,
@@ -103,7 +109,9 @@ def client():
             from fastapi import HTTPException
 
             if self.user.id not in (user_a.id, user_b.id):
-                raise HTTPException(status_code=403, detail="You do not have access to this request")
+                raise HTTPException(
+                    status_code=403, detail="You do not have access to this request"
+                )
             if rid != request_id:
                 raise HTTPException(status_code=404, detail="Request not found")
             return sample_request
@@ -129,7 +137,9 @@ def client():
             from fastapi import HTTPException
 
             if self.user.id not in (user_a.id, user_b.id):
-                raise HTTPException(status_code=403, detail="You do not have access to this request")
+                raise HTTPException(
+                    status_code=403, detail="You do not have access to this request"
+                )
             return RiskAnalysisResponse(
                 risk_score=85,
                 risk_level="critical",

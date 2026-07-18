@@ -67,9 +67,7 @@ class VerificationRequestCreate(BaseModel):
     requested_action: Optional[str] = Field(None, max_length=2000)
     amount_requested: Optional[Decimal] = Field(None, ge=0, le=Decimal("9999999999.99"))
 
-    @field_validator(
-        "description", "sender_name", "sender_contact", "requested_action"
-    )
+    @field_validator("description", "sender_name", "sender_contact", "requested_action")
     @classmethod
     def sanitize_text(cls, v: Optional[str]) -> Optional[str]:
         if v is None:

@@ -23,6 +23,4 @@ async def set_current_user_id(session: AsyncSession, user_id: UUID) -> None:
 
 async def clear_current_user_id(session: AsyncSession) -> None:
     """Clear the RLS user context for the current session."""
-    await session.execute(
-        text("SELECT set_config('app.current_user_id', '', false)")
-    )
+    await session.execute(text("SELECT set_config('app.current_user_id', '', false)"))

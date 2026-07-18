@@ -15,7 +15,6 @@ from backend.database.models import (
     InAppNotification,
     TrustedContact,
     TrustedVerificationRequest,
-    User,
 )
 from backend.database.service import DatabaseService, handle_database_error
 
@@ -126,7 +125,9 @@ class VerificationRequestRepository:
             )
             return result.scalar_one_or_none()
         except Exception as e:
-            raise handle_database_error(e, f"get_verification_request({request_id})") from e
+            raise handle_database_error(
+                e, f"get_verification_request({request_id})"
+            ) from e
 
     async def get_by_id_or_raise(self, request_id: UUID) -> TrustedVerificationRequest:
         request = await self.get_by_id(request_id)
@@ -134,7 +135,9 @@ class VerificationRequestRepository:
             raise DatabaseNotFoundError(f"Verification request {request_id} not found")
         return request
 
-    async def list_for_submitter(self, user_id: UUID) -> List[TrustedVerificationRequest]:
+    async def list_for_submitter(
+        self, user_id: UUID
+    ) -> List[TrustedVerificationRequest]:
         try:
             result = await self.db_service.session.execute(
                 self._base_query()
@@ -198,7 +201,9 @@ class VerificationRequestRepository:
             return loaded or request
         except Exception as e:
             await self.db_service.session.rollback()
-            raise handle_database_error(e, f"save_verification_request({request.id})") from e
+            raise handle_database_error(
+                e, f"save_verification_request({request.id})"
+            ) from e
 
 
 class NotificationRepository:

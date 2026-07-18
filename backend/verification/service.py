@@ -69,7 +69,9 @@ class VerificationService:
     async def prepare(self) -> None:
         await set_current_user_id(self.session, self.current_user.id)
 
-    def _decrypt_user(self, user: Optional[User]) -> tuple[Optional[str], Optional[str]]:
+    def _decrypt_user(
+        self, user: Optional[User]
+    ) -> tuple[Optional[str], Optional[str]]:
         if user is None:
             return None, None
         email = None
@@ -122,8 +124,7 @@ class VerificationService:
             submitter_name=submitter_name,
             submitter_email=submitter_email,
             trusted_contact_label=label,
-            is_stale=self._is_stale(request.created_at)
-            and request.status == "pending",
+            is_stale=self._is_stale(request.created_at) and request.status == "pending",
         )
 
     def to_contact_response(self, contact: TrustedContact) -> TrustedContactResponse:
@@ -142,7 +143,10 @@ class VerificationService:
         users = await self.db_service.get_all_users()
         for user in users:
             try:
-                if self.encryption.decrypt(user.email_encrypted).lower() == email.lower():
+                if (
+                    self.encryption.decrypt(user.email_encrypted).lower()
+                    == email.lower()
+                ):
                     return user
             except Exception:
                 continue
@@ -212,7 +216,9 @@ class VerificationService:
                 detail="Trusted contact not found or not assigned to you",
             )
 
-        amount = float(data.amount_requested) if data.amount_requested is not None else None
+        amount = (
+            float(data.amount_requested) if data.amount_requested is not None else None
+        )
         risk = analyze_verification_risk(
             description=data.description,
             requested_action=data.requested_action,

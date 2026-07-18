@@ -77,7 +77,9 @@ class TestRiskRules:
         result = analyze_verification_risk(
             description="Calling from bank fraud about your account compromised."
         )
-        assert "Claims to be from a bank or financial institution" in result.risk_reasons
+        assert (
+            "Claims to be from a bank or financial institution" in result.risk_reasons
+        )
 
     def test_remote_access(self):
         result = analyze_verification_risk(

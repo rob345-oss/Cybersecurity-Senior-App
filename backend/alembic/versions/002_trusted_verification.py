@@ -5,6 +5,7 @@ Revises: 001
 Create Date: 2026-07-18 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -45,8 +46,12 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["contact_user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("user_id", "contact_user_id", name="uq_trusted_contacts_pair"),
-        sa.CheckConstraint("user_id <> contact_user_id", name="ck_trusted_contacts_not_self"),
+        sa.UniqueConstraint(
+            "user_id", "contact_user_id", name="uq_trusted_contacts_pair"
+        ),
+        sa.CheckConstraint(
+            "user_id <> contact_user_id", name="ck_trusted_contacts_not_self"
+        ),
     )
     op.create_index("ix_trusted_contacts_user_id", "trusted_contacts", ["user_id"])
     op.create_index(
@@ -152,37 +157,30 @@ def upgrade() -> None:
     op.execute("ALTER TABLE in_app_notifications ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE in_app_notifications FORCE ROW LEVEL SECURITY")
 
-    op.execute(
-        """
+    op.execute("""
         CREATE POLICY trusted_contacts_select ON trusted_contacts
         FOR SELECT
         USING (
             user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
             OR contact_user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
         )
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE POLICY trusted_contacts_insert ON trusted_contacts
         FOR INSERT
         WITH CHECK (
             user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
         )
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE POLICY trusted_contacts_delete ON trusted_contacts
         FOR DELETE
         USING (
             user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
         )
-        """
-    )
+        """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE POLICY verification_requests_select ON trusted_verification_requests
         FOR SELECT
         USING (
@@ -193,19 +191,15 @@ def upgrade() -> None:
                   AND tc.contact_user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
             )
         )
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE POLICY verification_requests_insert ON trusted_verification_requests
         FOR INSERT
         WITH CHECK (
             user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
         )
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE POLICY verification_requests_update ON trusted_verification_requests
         FOR UPDATE
         USING (
@@ -216,43 +210,48 @@ def upgrade() -> None:
                   AND tc.contact_user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
             )
         )
-        """
-    )
+        """)
 
-    op.execute(
-        """
+    op.execute("""
         CREATE POLICY in_app_notifications_select ON in_app_notifications
         FOR SELECT
         USING (
             user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
         )
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE POLICY in_app_notifications_insert ON in_app_notifications
         FOR INSERT
         WITH CHECK (true)
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE POLICY in_app_notifications_update ON in_app_notifications
         FOR UPDATE
         USING (
             user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid
         )
-        """
-    )
+        """)
 
 
 def downgrade() -> None:
-    op.execute("DROP POLICY IF EXISTS in_app_notifications_update ON in_app_notifications")
-    op.execute("DROP POLICY IF EXISTS in_app_notifications_insert ON in_app_notifications")
-    op.execute("DROP POLICY IF EXISTS in_app_notifications_select ON in_app_notifications")
-    op.execute("DROP POLICY IF EXISTS verification_requests_update ON trusted_verification_requests")
-    op.execute("DROP POLICY IF EXISTS verification_requests_insert ON trusted_verification_requests")
-    op.execute("DROP POLICY IF EXISTS verification_requests_select ON trusted_verification_requests")
+    op.execute(
+        "DROP POLICY IF EXISTS in_app_notifications_update ON in_app_notifications"
+    )
+    op.execute(
+        "DROP POLICY IF EXISTS in_app_notifications_insert ON in_app_notifications"
+    )
+    op.execute(
+        "DROP POLICY IF EXISTS in_app_notifications_select ON in_app_notifications"
+    )
+    op.execute(
+        "DROP POLICY IF EXISTS verification_requests_update ON trusted_verification_requests"
+    )
+    op.execute(
+        "DROP POLICY IF EXISTS verification_requests_insert ON trusted_verification_requests"
+    )
+    op.execute(
+        "DROP POLICY IF EXISTS verification_requests_select ON trusted_verification_requests"
+    )
     op.execute("DROP POLICY IF EXISTS trusted_contacts_delete ON trusted_contacts")
     op.execute("DROP POLICY IF EXISTS trusted_contacts_insert ON trusted_contacts")
     op.execute("DROP POLICY IF EXISTS trusted_contacts_select ON trusted_contacts")
@@ -264,7 +263,9 @@ def downgrade() -> None:
     op.execute("ALTER TABLE trusted_contacts NO FORCE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE trusted_contacts DISABLE ROW LEVEL SECURITY")
 
-    op.drop_index("ix_in_app_notifications_created_at", table_name="in_app_notifications")
+    op.drop_index(
+        "ix_in_app_notifications_created_at", table_name="in_app_notifications"
+    )
     op.drop_index("ix_in_app_notifications_user_id", table_name="in_app_notifications")
     op.drop_table("in_app_notifications")
 

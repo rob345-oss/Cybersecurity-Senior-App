@@ -76,7 +76,9 @@ async def test_submitter_can_view_own_request(encryption):
     request = _request(submitter.id, contact)
 
     session = AsyncMock()
-    with patch("backend.verification.service.get_encryption", return_value=encryption), patch(
+    with patch(
+        "backend.verification.service.get_encryption", return_value=encryption
+    ), patch(
         "backend.verification.service.set_current_user_id", new_callable=AsyncMock
     ):
         service = VerificationService(session, submitter)
@@ -98,7 +100,9 @@ async def test_assigned_reviewer_can_view_request(encryption):
     request = _request(submitter.id, contact)
 
     session = AsyncMock()
-    with patch("backend.verification.service.get_encryption", return_value=encryption), patch(
+    with patch(
+        "backend.verification.service.get_encryption", return_value=encryption
+    ), patch(
         "backend.verification.service.set_current_user_id", new_callable=AsyncMock
     ):
         service = VerificationService(session, reviewer)
@@ -121,7 +125,9 @@ async def test_other_family_cannot_view_request(encryption):
     request = _request(submitter.id, contact)
 
     session = AsyncMock()
-    with patch("backend.verification.service.get_encryption", return_value=encryption), patch(
+    with patch(
+        "backend.verification.service.get_encryption", return_value=encryption
+    ), patch(
         "backend.verification.service.set_current_user_id", new_callable=AsyncMock
     ):
         service = VerificationService(session, outsider)
@@ -146,7 +152,9 @@ async def test_only_assigned_reviewer_can_review(encryption):
     request = _request(submitter.id, contact)
 
     session = AsyncMock()
-    with patch("backend.verification.service.get_encryption", return_value=encryption), patch(
+    with patch(
+        "backend.verification.service.get_encryption", return_value=encryption
+    ), patch(
         "backend.verification.service.set_current_user_id", new_callable=AsyncMock
     ):
         service = VerificationService(session, outsider)
@@ -156,7 +164,9 @@ async def test_only_assigned_reviewer_can_review(encryption):
         with pytest.raises(HTTPException) as exc:
             await service.review_request(
                 request.id,
-                VerificationReviewRequest(status="confirmed_scam", reviewer_notes="Scam"),
+                VerificationReviewRequest(
+                    status="confirmed_scam", reviewer_notes="Scam"
+                ),
             )
         assert exc.value.status_code == 403
 
@@ -173,7 +183,9 @@ async def test_submitter_cannot_review_own_request(encryption):
     request = _request(submitter.id, contact)
 
     session = AsyncMock()
-    with patch("backend.verification.service.get_encryption", return_value=encryption), patch(
+    with patch(
+        "backend.verification.service.get_encryption", return_value=encryption
+    ), patch(
         "backend.verification.service.set_current_user_id", new_callable=AsyncMock
     ):
         service = VerificationService(session, submitter)
@@ -199,15 +211,15 @@ async def test_reviewer_can_mark_needs_discussion(encryption):
     request = _request(submitter.id, contact)
 
     session = AsyncMock()
-    with patch("backend.verification.service.get_encryption", return_value=encryption), patch(
+    with patch(
+        "backend.verification.service.get_encryption", return_value=encryption
+    ), patch(
         "backend.verification.service.set_current_user_id", new_callable=AsyncMock
     ):
         service = VerificationService(session, reviewer)
         service.request_repo = MagicMock()
         service.request_repo.get_by_id_or_raise = AsyncMock(return_value=request)
-        service.request_repo.save = AsyncMock(
-            side_effect=lambda r: r
-        )
+        service.request_repo.save = AsyncMock(side_effect=lambda r: r)
         service.notifications = MagicMock()
         service.notifications.notify_in_app = AsyncMock()
 

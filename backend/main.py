@@ -18,8 +18,7 @@ from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -45,6 +44,7 @@ from backend.verification.router import router as verification_router
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
@@ -52,13 +52,15 @@ async def lifespan(app: FastAPI):
     logger.info("Checking database connection...")
     # Make database connection optional in development
     skip_db_check = os.getenv("SKIP_DB_CHECK", "false").lower() == "true"
-    
+
     try:
         # Check database connection before proceeding
         is_connected = await check_database_connection()
         if not is_connected:
             if skip_db_check:
-                logger.warning("Database connection failed, but SKIP_DB_CHECK is enabled. Continuing without database.")
+                logger.warning(
+                    "Database connection failed, but SKIP_DB_CHECK is enabled. Continuing without database."
+                )
             else:
                 raise DatabaseConnectionError(
                     "Failed to connect to database. Please check your DATABASE_URL and ensure PostgreSQL is running. "
@@ -76,19 +78,27 @@ async def lifespan(app: FastAPI):
                     raise
     except DatabaseConnectionError as e:
         if skip_db_check:
-            logger.warning(f"Database connection failed, but SKIP_DB_CHECK is enabled: {e}")
+            logger.warning(
+                f"Database connection failed, but SKIP_DB_CHECK is enabled: {e}"
+            )
         else:
             logger.error(f"Database connection failed: {e}")
             raise
     except Exception as e:
         if skip_db_check:
-            logger.warning(f"Unexpected error checking database connection (SKIP_DB_CHECK enabled): {e}")
+            logger.warning(
+                f"Unexpected error checking database connection (SKIP_DB_CHECK enabled): {e}"
+            )
         else:
-            logger.error(f"Unexpected error checking database connection: {e}", exc_info=True)
-            raise DatabaseConnectionError(f"Database connection check failed: {e}") from e
-    
+            logger.error(
+                f"Unexpected error checking database connection: {e}", exc_info=True
+            )
+            raise DatabaseConnectionError(
+                f"Database connection check failed: {e}"
+            ) from e
+
     yield
-    
+
     # Shutdown (if needed)
     logger.info("Shutting down...")
 
@@ -116,7 +126,9 @@ cors_origins_env = os.getenv("CORS_ORIGINS", "*")
 if cors_origins_env == "*":
     allowed_origins = ["*"]
 else:
-    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+    allowed_origins = [
+        origin.strip() for origin in cors_origins_env.split(",") if origin.strip()
+    ]
 
 app.add_middleware(
     CORSMiddleware,
@@ -137,7 +149,9 @@ app.include_router(voice_router)
 app.include_router(verification_router)
 
 # Serve verification screenshot uploads
-_upload_root = Path(os.getenv("VERIFICATION_UPLOAD_DIR", "uploads/verification")).resolve()
+_upload_root = Path(
+    os.getenv("VERIFICATION_UPLOAD_DIR", "uploads/verification")
+).resolve()
 _upload_root.mkdir(parents=True, exist_ok=True)
 app.mount(
     "/uploads/verification",
@@ -147,7 +161,12 @@ app.mount(
 
 
 class MoneyGuardAssessRequest(BaseModel):
-    amount: float = Field(..., ge=0, le=1000000000, description="Amount must be between 0 and 1,000,000,000")
+    amount: float = Field(
+        ...,
+        ge=0,
+        le=1000000000,
+        description="Amount must be between 0 and 1,000,000,000",
+    )
     payment_method: str
     recipient: str
     reason: str
@@ -224,23 +243,27 @@ class InboxGuardURLRequest(BaseModel):
 
 
 class IdentityWatchProfileRequest(BaseModel):
-    emails: List[str] = Field(..., min_length=1, description="At least one email is required")
-    phones: List[str] = Field(..., min_length=1, description="At least one phone number is required")
+    emails: List[str] = Field(
+        ..., min_length=1, description="At least one email is required"
+    )
+    phones: List[str] = Field(
+        ..., min_length=1, description="At least one phone number is required"
+    )
     full_name: Optional[str] = None
     state: Optional[str] = None
 
     @field_validator("emails")
     @classmethod
     def validate_emails(cls, v: List[str]) -> List[str]:
-        email_pattern = re.compile(
-            r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-        )
+        email_pattern = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
         sanitized_emails = []
         for email in v:
             if not email or not email.strip():
                 raise ValueError("Email cannot be empty")
             # Sanitize email to prevent XSS
-            sanitized = sanitize_input(email.strip(), max_length=254)  # RFC 5321 max length
+            sanitized = sanitize_input(
+                email.strip(), max_length=254
+            )  # RFC 5321 max length
             if not email_pattern.match(sanitized):
                 raise ValueError(f"Invalid email format: {email}")
             sanitized_emails.append(sanitized)
@@ -301,9 +324,11 @@ _profiles: Dict[str, IdentityWatchProfileRequest] = {}
 async def start_session(
     request: Request,
     session_request: SessionStartRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> SessionStartResponse:
-    record = store.start_session(str(session_request.user_id), session_request.device_id, session_request.module)
+    record = store.start_session(
+        str(session_request.user_id), session_request.device_id, session_request.module
+    )
     return SessionStartResponse(session_id=record.session_id)
 
 
@@ -313,7 +338,7 @@ async def append_event(
     request: Request,
     session_id: str,
     event: EventIn,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> RiskResponse:
     record = store.get_session(session_id)
     if not record:
@@ -321,17 +346,23 @@ async def append_event(
 
     store.append_event(session_id, event)
     try:
-        logger.info(f"Assessing risk for session {session_id}, module: {record.module}, event type: {event.type}")
+        logger.info(
+            f"Assessing risk for session {session_id}, module: {record.module}, event type: {event.type}"
+        )
         risk = await _assess_session_risk(record.module, record.events)
         store.update_last_risk(session_id, risk)
-        logger.info(f"Risk assessment completed for session {session_id}, score: {risk.score}")
+        logger.info(
+            f"Risk assessment completed for session {session_id}, score: {risk.score}"
+        )
 
         if record.module == "callguard" and event.type == "signal":
             payload = event.payload if isinstance(event.payload, dict) else {}
             signal_key = payload.get("signal_key")
             if signal_key:
                 from backend.voice.call_registry import call_registry
-                from backend.voice.risk_pipeline import register_manual_signal_for_session
+                from backend.voice.risk_pipeline import (
+                    register_manual_signal_for_session,
+                )
 
                 voice_record = await call_registry.get_by_session(session_id)
                 if voice_record:
@@ -339,23 +370,26 @@ async def append_event(
 
         return risk
     except Exception as e:
-        logger.error(f"Error assessing risk for session {session_id}, module: {record.module}: {str(e)}", exc_info=True)
+        logger.error(
+            f"Error assessing risk for session {session_id}, module: {record.module}: {str(e)}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to assess risk for session. Error: {str(e)}. Please try again or contact support if the issue persists."
+            detail=f"Failed to assess risk for session. Error: {str(e)}. Please try again or contact support if the issue persists.",
         )
 
 
 @app.post("/v1/session/{session_id}/end", response_model=SessionSummary)
 @limiter.limit("100/minute")
 async def end_session(
-    request: Request,
-    session_id: str,
-    current_user: User = Depends(get_current_user)
+    request: Request, session_id: str, current_user: User = Depends(get_current_user)
 ) -> SessionSummary:
     record = store.get_session(session_id)
     if not record or not record.last_risk:
-        raise HTTPException(status_code=404, detail="Session not found or no risk score")
+        raise HTTPException(
+            status_code=404, detail="Session not found or no risk score"
+        )
     takeaways = record.last_risk.reasons[:3]
     summary = store.summarize(session_id, takeaways)
     if not summary:
@@ -366,19 +400,18 @@ async def end_session(
 @app.get("/v1/session/{session_id}", response_model=SessionDetail)
 @limiter.limit("200/minute")
 async def get_session(
-    request: Request,
-    session_id: str,
-    current_user: User = Depends(get_current_user)
+    request: Request, session_id: str, current_user: User = Depends(get_current_user)
 ) -> SessionDetail:
     record = store.get_session(session_id)
     if not record:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     # Decrypt event payloads before returning (events stored with encrypted sensitive fields)
     from backend.storage.encryption import get_encryption
+
     encryption = get_encryption()
     from backend.models import EventOut
-    
+
     decrypted_events = []
     for event in record.events:
         # Decrypt sensitive fields in the payload dictionary
@@ -387,7 +420,7 @@ async def get_session(
             decrypted_payload = store._decrypt_event_payload(event.payload)
         else:
             decrypted_payload = event.payload
-        
+
         decrypted_event = EventOut(
             id=event.id,
             type=event.type,
@@ -395,7 +428,7 @@ async def get_session(
             timestamp=event.timestamp,
         )
         decrypted_events.append(decrypted_event)
-    
+
     return SessionDetail(events=decrypted_events, last_risk=record.last_risk)
 
 
@@ -404,7 +437,7 @@ async def get_session(
 async def moneyguard_assess(
     request: Request,
     assess_request: MoneyGuardAssessRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> RiskResponse:
     payload = assess_request.dict(exclude={"session_id"})
     flags = {
@@ -420,25 +453,31 @@ async def moneyguard_assess(
     if assess_request.session_id:
         record = store.get_session(assess_request.session_id)
         if record:
-            event = EventIn(type="assess", payload=payload, timestamp=datetime.now(timezone.utc))
+            event = EventIn(
+                type="assess", payload=payload, timestamp=datetime.now(timezone.utc)
+            )
             store.append_event(record.session_id, event)
 
     try:
-        logger.info(f"Assessing MoneyGuard risk: amount={assess_request.amount}, payment_method={assess_request.payment_method}, session_id={assess_request.session_id}")
+        logger.info(
+            f"Assessing MoneyGuard risk: amount={assess_request.amount}, payment_method={assess_request.payment_method}, session_id={assess_request.session_id}"
+        )
         risk = moneyguard.assess(payload)
-        logger.info(f"MoneyGuard risk assessment completed: score={risk.score}, reasons_count={len(risk.reasons)}")
+        logger.info(
+            f"MoneyGuard risk assessment completed: score={risk.score}, reasons_count={len(risk.reasons)}"
+        )
         return risk
     except ValueError as e:
         logger.warning(f"Invalid input for MoneyGuard assessment: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid request data for MoneyGuard assessment: {str(e)}. Please check your input and try again."
+            detail=f"Invalid request data for MoneyGuard assessment: {str(e)}. Please check your input and try again.",
         )
     except Exception as e:
         logger.error(f"Error in MoneyGuard risk assessment: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to assess payment risk. Error: {str(e)}. Please try again or contact support if the issue persists."
+            detail=f"Failed to assess payment risk. Error: {str(e)}. Please try again or contact support if the issue persists.",
         )
 
 
@@ -447,7 +486,7 @@ async def moneyguard_assess(
 async def moneyguard_safe_steps(
     request: Request,
     steps_request: MoneyGuardSafeStepsRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, List[Dict[str, str]]]:
     return moneyguard.safe_steps()
 
@@ -457,24 +496,28 @@ async def moneyguard_safe_steps(
 async def inboxguard_analyze_text(
     request: Request,
     text_request: InboxGuardTextRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> RiskResponse:
     try:
-        logger.info(f"Analyzing InboxGuard text: channel={text_request.channel}, text_length={len(text_request.text)}")
+        logger.info(
+            f"Analyzing InboxGuard text: channel={text_request.channel}, text_length={len(text_request.text)}"
+        )
         risk = inboxguard.analyze_text(text_request.text, text_request.channel)
-        logger.info(f"InboxGuard text analysis completed: score={risk.score}, reasons_count={len(risk.reasons)}")
+        logger.info(
+            f"InboxGuard text analysis completed: score={risk.score}, reasons_count={len(risk.reasons)}"
+        )
         return risk
     except ValueError as e:
         logger.warning(f"Invalid input for InboxGuard text analysis: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid request data for text analysis: {str(e)}. Please check your input and try again."
+            detail=f"Invalid request data for text analysis: {str(e)}. Please check your input and try again.",
         )
     except Exception as e:
         logger.error(f"Error in InboxGuard text analysis: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to analyze message text. Error: {str(e)}. Please try again or contact support if the issue persists."
+            detail=f"Failed to analyze message text. Error: {str(e)}. Please try again or contact support if the issue persists.",
         )
 
 
@@ -483,24 +526,26 @@ async def inboxguard_analyze_text(
 async def inboxguard_analyze_url(
     request: Request,
     url_request: InboxGuardURLRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> RiskResponse:
     try:
         logger.info(f"Analyzing InboxGuard URL: {url_request.url}")
         risk = inboxguard.analyze_url(url_request.url)
-        logger.info(f"InboxGuard URL analysis completed: score={risk.score}, reasons_count={len(risk.reasons)}")
+        logger.info(
+            f"InboxGuard URL analysis completed: score={risk.score}, reasons_count={len(risk.reasons)}"
+        )
         return risk
     except ValueError as e:
         logger.warning(f"Invalid input for InboxGuard URL analysis: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid URL for analysis: {str(e)}. Please check the URL format and try again."
+            detail=f"Invalid URL for analysis: {str(e)}. Please check the URL format and try again.",
         )
     except Exception as e:
         logger.error(f"Error in InboxGuard URL analysis: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to analyze URL. Error: {str(e)}. Please try again or contact support if the issue persists."
+            detail=f"Failed to analyze URL. Error: {str(e)}. Please try again or contact support if the issue persists.",
         )
 
 
@@ -509,22 +554,23 @@ async def inboxguard_analyze_url(
 async def identitywatch_profile(
     request: Request,
     profile_request: IdentityWatchProfileRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> IdentityWatchProfileResponse:
     profile_id = f"profile-{len(_profiles) + 1}"
     _profiles[profile_id] = profile_request
-    return IdentityWatchProfileResponse(profile_id=profile_id, created=datetime.now(timezone.utc))
+    return IdentityWatchProfileResponse(
+        profile_id=profile_id, created=datetime.now(timezone.utc)
+    )
 
 
 @app.get("/v1/data-retention/policy")
 @limiter.limit("50/minute")
 async def get_retention_policy(
-    request: Request,
-    current_user: User = Depends(get_current_user)
+    request: Request, current_user: User = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Get current data retention policy configuration.
-    
+
     This endpoint returns information about how long different types of data
     are retained before being automatically deleted.
     """
@@ -536,26 +582,30 @@ async def get_retention_policy(
 async def identitywatch_check_risk(
     request: Request,
     risk_request: IdentityWatchRiskRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> RiskResponse:
     if risk_request.profile_id not in _profiles:
         raise HTTPException(status_code=404, detail="Profile not found")
     try:
-        logger.info(f"Assessing IdentityWatch risk for profile {risk_request.profile_id}, signals_count={len(risk_request.signals)}")
+        logger.info(
+            f"Assessing IdentityWatch risk for profile {risk_request.profile_id}, signals_count={len(risk_request.signals)}"
+        )
         risk = identitywatch.assess(risk_request.signals)
-        logger.info(f"IdentityWatch risk assessment completed: score={risk.score}, reasons_count={len(risk.reasons)}")
+        logger.info(
+            f"IdentityWatch risk assessment completed: score={risk.score}, reasons_count={len(risk.reasons)}"
+        )
         return risk
     except ValueError as e:
         logger.warning(f"Invalid input for IdentityWatch assessment: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid request data for identity risk assessment: {str(e)}. Please check your input and try again."
+            detail=f"Invalid request data for identity risk assessment: {str(e)}. Please check your input and try again.",
         )
     except Exception as e:
         logger.error(f"Error in IdentityWatch risk assessment: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to assess identity risk. Error: {str(e)}. Please try again or contact support if the issue persists."
+            detail=f"Failed to assess identity risk. Error: {str(e)}. Please try again or contact support if the issue persists.",
         )
 
 
@@ -571,7 +621,7 @@ async def _assess_session_risk(module: ModuleName, events: List[Any]) -> RiskRes
             if isinstance(event.payload, dict):
                 return store._decrypt_event_payload(event.payload)
             return event.payload
-        
+
         if module == "callguard":
             signals = [
                 get_decrypted_payload(event).get("signal_key")
@@ -585,7 +635,9 @@ async def _assess_session_risk(module: ModuleName, events: List[Any]) -> RiskRes
                 if event.type == "transcript":
                     payload = get_decrypted_payload(event)
                     if isinstance(payload, dict):
-                        text = payload.get("full_transcript") or payload.get("text") or ""
+                        text = (
+                            payload.get("full_transcript") or payload.get("text") or ""
+                        )
                         if text:
                             transcript_parts.append(str(text))
             full_transcript = transcript_parts[-1] if transcript_parts else ""
@@ -599,17 +651,24 @@ async def _assess_session_risk(module: ModuleName, events: List[Any]) -> RiskRes
             logger.debug(f"CallGuard assessment: signals={merged_signals}")
             return callguard.assess(merged_signals, call_context=call_context or None)
         if module == "moneyguard":
-            latest = next((event for event in reversed(events) if event.type == "assess"), None)
+            latest = next(
+                (event for event in reversed(events) if event.type == "assess"), None
+            )
             payload = get_decrypted_payload(latest) if latest else {}
             logger.debug(f"MoneyGuard assessment: payload_keys={list(payload.keys())}")
             return moneyguard.assess(payload)
         if module == "inboxguard":
-            latest = next((event for event in reversed(events) if event.type in {"text", "url"}), None)
+            latest = next(
+                (event for event in reversed(events) if event.type in {"text", "url"}),
+                None,
+            )
             if latest and latest.type == "text":
                 decrypted_payload = get_decrypted_payload(latest)
                 text = decrypted_payload.get("text", "")
                 channel = decrypted_payload.get("channel", "other")
-                logger.debug(f"InboxGuard text analysis: channel={channel}, text_length={len(text)}")
+                logger.debug(
+                    f"InboxGuard text analysis: channel={channel}, text_length={len(text)}"
+                )
                 return inboxguard.analyze_text(text, channel)
             if latest and latest.type == "url":
                 decrypted_payload = get_decrypted_payload(latest)
@@ -618,19 +677,35 @@ async def _assess_session_risk(module: ModuleName, events: List[Any]) -> RiskRes
                 return inboxguard.analyze_url(url)
             # No text or URL event found
             logger.warning(f"InboxGuard: No text or URL event found in session events")
-            raise ValueError("No text or URL event found in session for InboxGuard analysis")
+            raise ValueError(
+                "No text or URL event found in session for InboxGuard analysis"
+            )
         if module == "identitywatch":
-            latest = next((event for event in reversed(events) if event.type == "signals"), None)
+            latest = next(
+                (event for event in reversed(events) if event.type == "signals"), None
+            )
             payload = latest.payload if latest else {}
-            logger.debug(f"IdentityWatch assessment: signals_keys={list(payload.keys()) if isinstance(payload, dict) else 'N/A'}")
+            logger.debug(
+                f"IdentityWatch assessment: signals_keys={list(payload.keys()) if isinstance(payload, dict) else 'N/A'}"
+            )
             return identitywatch.assess(payload)
 
         # Default fallback
-        logger.warning(f"Unknown module '{module}', defaulting to CallGuard with empty signals")
+        logger.warning(
+            f"Unknown module '{module}', defaulting to CallGuard with empty signals"
+        )
         return callguard.assess([])
     except ValueError as e:
-        logger.error(f"Value error in _assess_session_risk for module {module}: {str(e)}", exc_info=True)
+        logger.error(
+            f"Value error in _assess_session_risk for module {module}: {str(e)}",
+            exc_info=True,
+        )
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in _assess_session_risk for module {module}: {str(e)}", exc_info=True)
-        raise RuntimeError(f"Failed to assess risk for module {module}: {str(e)}") from e
+        logger.error(
+            f"Unexpected error in _assess_session_risk for module {module}: {str(e)}",
+            exc_info=True,
+        )
+        raise RuntimeError(
+            f"Failed to assess risk for module {module}: {str(e)}"
+        ) from e

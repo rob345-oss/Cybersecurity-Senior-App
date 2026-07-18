@@ -130,7 +130,9 @@ class TrustedContact(Base):
     __tablename__ = "trusted_contacts"
     __table_args__ = (
         UniqueConstraint("user_id", "contact_user_id", name="uq_trusted_contacts_pair"),
-        CheckConstraint("user_id <> contact_user_id", name="ck_trusted_contacts_not_self"),
+        CheckConstraint(
+            "user_id <> contact_user_id", name="ck_trusted_contacts_not_self"
+        ),
     )
 
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
