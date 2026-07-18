@@ -5,7 +5,7 @@ class InsightsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final insights = [
+    const insights = [
       _InsightCardData(
         title: 'Identity-first protection',
         description:
