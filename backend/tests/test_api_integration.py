@@ -17,12 +17,9 @@ from backend.storage.memory import MemoryStore
 
 
 @pytest.fixture
-def client():
-    """Create a test client with a fresh store instance."""
-    # Create a new store instance for testing
-    from backend import main
-    main.store = MemoryStore(session_ttl_hours=0)  # Disable TTL for tests
-    return TestClient(app)
+def client(authed_client):
+    """Create an authenticated test client with a fresh store instance."""
+    return authed_client
 
 
 @pytest.fixture
