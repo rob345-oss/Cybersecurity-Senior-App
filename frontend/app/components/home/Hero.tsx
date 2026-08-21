@@ -1,31 +1,34 @@
 'use client'
 
 import Link from 'next/link'
+import { useTranslation } from '../../i18n/LanguageProvider'
 
 export default function Hero() {
+  const { dictionary: d } = useTranslation()
+
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Your digital guardian.
+              {d.hero.headline}
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              AI-powered protection for older adults against scams across phone, text, email, and web.
+              {d.hero.subhead}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/signup"
                 className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold text-center"
               >
-                Get Started
+                {d.hero.ctaPrimary}
               </Link>
               <Link
                 href="#how-it-works"
                 className="px-6 py-3 bg-white text-gray-900 border-2 border-gray-900 rounded-lg hover:bg-gray-50 transition-colors font-semibold text-center"
               >
-                See How It Works
+                {d.hero.ctaSecondary}
               </Link>
             </div>
           </div>
@@ -55,4 +58,3 @@ export default function Hero() {
     </section>
   )
 }
-

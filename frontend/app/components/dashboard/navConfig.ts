@@ -1,66 +1,30 @@
 import type { LucideIcon } from 'lucide-react'
 import { DollarSign, LayoutDashboard, Mail, Phone, User } from 'lucide-react'
 
+/**
+ * Structural dashboard navigation (labels come from i18n dictionaries).
+ */
 export interface DashboardNavItem {
   href: string
-  label: string
   icon: LucideIcon
-  description?: string
+  guardKey?: 'callguard' | 'moneyguard' | 'inboxguard' | 'identitywatch'
 }
 
 export const dashboardNavItems: DashboardNavItem[] = [
-  { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  {
-    href: '/dashboard/callguard',
-    label: 'CallGuard',
-    icon: Phone,
-    description: 'Live coaching for suspicious calls',
-  },
-  {
-    href: '/dashboard/moneyguard',
-    label: 'MoneyGuard',
-    icon: DollarSign,
-    description: 'Assess payment risk before you send',
-  },
-  {
-    href: '/dashboard/inboxguard',
-    label: 'InboxGuard',
-    icon: Mail,
-    description: 'Analyze messages and links for phishing',
-  },
-  {
-    href: '/dashboard/identitywatch',
-    label: 'IdentityWatch',
-    icon: User,
-    description: 'Monitor identity signals and escalation steps',
-  },
+  { href: '/dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/callguard', icon: Phone, guardKey: 'callguard' },
+  { href: '/dashboard/moneyguard', icon: DollarSign, guardKey: 'moneyguard' },
+  { href: '/dashboard/inboxguard', icon: Mail, guardKey: 'inboxguard' },
+  { href: '/dashboard/identitywatch', icon: User, guardKey: 'identitywatch' },
 ]
 
 export const modulePageMeta: Record<
   string,
-  { title: string; description: string; comingSoon?: boolean }
+  { guardKey?: 'callguard' | 'moneyguard' | 'inboxguard' | 'identitywatch'; comingSoon?: boolean }
 > = {
-  '/dashboard': {
-    title: 'Dashboard',
-    description: 'Your security command center',
-  },
-  '/dashboard/callguard': {
-    title: 'CallGuard',
-    description: 'Live coaching for suspicious calls',
-  },
-  '/dashboard/moneyguard': {
-    title: 'MoneyGuard',
-    description: 'Assess payment risk before you send',
-    comingSoon: true,
-  },
-  '/dashboard/inboxguard': {
-    title: 'InboxGuard',
-    description: 'Analyze messages and links for phishing',
-    comingSoon: true,
-  },
-  '/dashboard/identitywatch': {
-    title: 'IdentityWatch',
-    description: 'Monitor identity signals and escalation steps',
-    comingSoon: true,
-  },
+  '/dashboard': {},
+  '/dashboard/callguard': { guardKey: 'callguard' },
+  '/dashboard/moneyguard': { guardKey: 'moneyguard', comingSoon: true },
+  '/dashboard/inboxguard': { guardKey: 'inboxguard', comingSoon: true },
+  '/dashboard/identitywatch': { guardKey: 'identitywatch', comingSoon: true },
 }

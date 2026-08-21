@@ -4,11 +4,13 @@ import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardShell from '../components/dashboard/DashboardShell'
+import { useTranslation } from '../i18n/LanguageProvider'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const { dictionary: d } = useTranslation()
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -20,7 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+        <div className="text-gray-600">{d.common.loading}</div>
       </div>
     )
   }
@@ -28,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Redirecting to login...</div>
+        <div className="text-gray-600">{d.common.redirectingToLogin}</div>
       </div>
     )
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
+import { useTranslation } from '../../i18n/LanguageProvider'
 
 interface GoogleSignInButtonProps {
   onSuccess: (idToken: string) => Promise<void>
@@ -13,19 +14,20 @@ export default function GoogleSignInButton({
   onError,
   disabled = false,
 }: GoogleSignInButtonProps) {
+  const { dictionary: d, locale } = useTranslation()
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
   if (!clientId) {
     return (
       <p className="text-sm text-gray-500 text-center">
-        Google sign-in is not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment.
+        {d.googleAuth.notConfigured}
       </p>
     )
   }
 
   const handleSuccess = async (response: CredentialResponse) => {
     if (!response.credential) {
-      onError('Google sign-in did not return a credential.')
+      onError(d.googleAuth.noCredential)
       return
     }
 
@@ -35,7 +37,7 @@ export default function GoogleSignInButton({
       const message =
         err instanceof Error && err.message
           ? err.message
-          : 'Failed to sign in with Google. Please try again.'
+          : d.googleAuth.failed
       onError(message)
     }
   }
@@ -44,12 +46,13 @@ export default function GoogleSignInButton({
     <div className={`flex justify-center ${disabled ? 'pointer-events-none opacity-50' : ''}`}>
       <GoogleLogin
         onSuccess={handleSuccess}
-        onError={() => onError('Google sign-in was cancelled or failed.')}
+        onError={() => onError(d.googleAuth.cancelled)}
         theme="outline"
         size="large"
         text="continue_with"
         shape="rectangular"
         width={320}
+        locale={locale === 'es' ? 'es' : 'en'}
       />
     </div>
   )

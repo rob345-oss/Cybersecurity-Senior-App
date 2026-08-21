@@ -69,7 +69,8 @@ export function getErrorMessage(detail: unknown, fallback: string): string {
 
 async function handleAuthResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    let errorMessage = 'Request failed'
+    const { localizedRequestFailed } = await import('../i18n/client-locale')
+    let errorMessage = localizedRequestFailed()
     try {
       const errorData = await response.json()
       errorMessage = getErrorMessage(errorData.detail, errorMessage)
@@ -150,7 +151,8 @@ export async function exchangeGoogleToken(idToken: string): Promise<AuthTokenRes
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data.detail, 'Failed to sign in with Google.'))
+    const { localizedGoogleSignInFailed } = await import('../i18n/client-locale')
+    throw new Error(getErrorMessage(data.detail, localizedGoogleSignInFailed()))
   }
 
   return data

@@ -22,12 +22,13 @@ export interface VoiceWsMessage {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    let detail = 'Request failed'
+    const { localizedRequestFailed } = await import('../../i18n/client-locale')
+    let detail: string = localizedRequestFailed()
     try {
       const data = await response.json()
       detail = data.detail || data.message || detail
     } catch {
-      detail = response.statusText
+      detail = response.statusText || detail
     }
     throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail))
   }

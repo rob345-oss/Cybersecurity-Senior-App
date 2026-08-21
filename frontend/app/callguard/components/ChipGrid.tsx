@@ -1,10 +1,22 @@
+'use client'
+
+import { useTranslation } from '../../i18n/LanguageProvider'
+import type { Dictionary } from '../../i18n/dictionaries/en'
+
 interface ChipGridProps {
   items: string[]
   selected: Set<string>
   onToggle: (item: string) => void
 }
 
+function signalLabel(dictionary: Dictionary, key: string): string {
+  const signals = dictionary.callguard.signals as Record<string, string>
+  return signals[key] ?? key.replaceAll('_', ' ')
+}
+
 export default function ChipGrid({ items, selected, onToggle }: ChipGridProps) {
+  const { dictionary: d } = useTranslation()
+
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item) => (
@@ -18,10 +30,9 @@ export default function ChipGrid({ items, selected, onToggle }: ChipGridProps) {
           }`}
           onClick={() => onToggle(item)}
         >
-          {item.replaceAll('_', ' ')}
+          {signalLabel(d, item)}
         </button>
       ))}
     </div>
   )
 }
-

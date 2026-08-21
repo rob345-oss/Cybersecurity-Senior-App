@@ -8,12 +8,14 @@ import IncomingCallModal from './IncomingCallModal'
 import LiveTranscript from './LiveTranscript'
 import { useTwilioDevice } from './useTwilioDevice'
 import { useVoiceWebSocket } from './useVoiceWebSocket'
+import { useTranslation } from '../../i18n/LanguageProvider'
 
 interface VoiceCallPanelProps {
   onSessionChange?: (sessionId: string | null) => void
 }
 
 export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps) {
+  const { dictionary: d } = useTranslation()
   const [phoneNumber, setPhoneNumber] = useState('')
   const [calling, setCalling] = useState(false)
   const [callError, setCallError] = useState<string | null>(null)
@@ -49,7 +51,7 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
       const result = await connectOutbound(phoneNumber)
       onSessionChange?.(result.sessionId)
     } catch (err) {
-      setCallError(err instanceof Error ? err.message : 'Failed to place call')
+      setCallError(err instanceof Error ? err.message : d.voice.failedPlaceCall)
     } finally {
       setCalling(false)
     }
@@ -60,20 +62,20 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
       const sid = await acceptIncoming()
       if (sid) onSessionChange?.(sid)
     } catch (err) {
-      setCallError(err instanceof Error ? err.message : 'Failed to accept call')
+      setCallError(err instanceof Error ? err.message : d.voice.failedAcceptCall)
     }
   }
 
   const statusLabel =
     status === 'ready'
-      ? 'Phone ready'
+      ? d.voice.phoneReady
       : status === 'loading'
-        ? 'Connecting phone…'
+        ? d.voice.connectingPhone
         : status === 'on-call'
-          ? 'On call'
+          ? d.voice.onCall
           : status === 'error'
-            ? 'Phone unavailable'
-            : 'Initializing…'
+            ? d.voice.phoneUnavailable
+            : d.voice.initializing
 
   const statusColor =
     status === 'ready' || status === 'on-call'
@@ -87,7 +89,7 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
       <div className={`text-sm font-medium px-3 py-2 rounded-lg border ${statusColor}`}>
         {statusLabel}
         {connected && wsEnabled && (
-          <span className="ml-2 text-xs text-green-600">Live analysis active</span>
+          <span className="ml-2 text-xs text-green-600">{d.voice.liveAnalysis}</span>
         )}
       </div>
 
@@ -96,7 +98,7 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
           {deviceError || callError}
           {deviceError?.includes('not configured') && (
             <p className="mt-1 text-xs">
-              Configure Twilio env vars and set PUBLIC_API_URL for webhooks. See docs/TWILIO_VOICE_SETUP.md.
+              {d.voice.twilioNotConfigured}
             </p>
           )}
         </div>
@@ -122,7 +124,7 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
 
       {!activeCall && status !== 'error' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Phone</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{d.voice.phoneHeading}</h2>
           <DialPad
             value={phoneNumber}
             onChange={setPhoneNumber}
@@ -131,8 +133,7 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
             loading={calling}
           />
           <p className="mt-4 text-xs text-gray-500">
-            Place or receive calls through your browser. CallGuard analyzes speech in real time and
-            shows warnings only—you decide when to hang up.
+            {d.voice.phoneHelp}
           </p>
         </div>
       )}
@@ -145,13 +146,12 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
         <div className="space-y-3">
           {risk.level === 'high' && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-900 text-sm">
-              <strong>High risk detected.</strong> Consider ending the call if something feels wrong.
-              This is guidance only—the app will not hang up for you.
+              <strong>{d.voice.highRiskTitle}</strong> {d.voice.highRiskBody}
             </div>
           )}
           {risk.level === 'medium' && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-sm">
-              <strong>Elevated risk.</strong> Stay cautious and avoid sharing codes or payment details.
+              <strong>{d.voice.mediumRiskTitle}</strong> {d.voice.mediumRiskBody}
             </div>
           )}
           <RiskCard risk={risk} />

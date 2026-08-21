@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '../../contexts/AuthContext'
+import { useTranslation } from '../../i18n/LanguageProvider'
 
 interface UserMenuProps {
   className?: string
@@ -8,6 +9,7 @@ interface UserMenuProps {
 
 export default function UserMenu({ className = '' }: UserMenuProps) {
   const { user, logout } = useAuth()
+  const { dictionary: d } = useTranslation()
 
   if (!user) return null
 
@@ -17,14 +19,14 @@ export default function UserMenu({ className = '' }: UserMenuProps) {
         {user.email}
       </p>
       {!user.email_verified && (
-        <p className="text-xs text-amber-700 mb-2">Email not verified</p>
+        <p className="text-xs text-amber-700 mb-2">{d.dashboard.emailNotVerified}</p>
       )}
       <button
         type="button"
         onClick={logout}
         className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
       >
-        Log out
+        {d.common.logOut}
       </button>
     </div>
   )

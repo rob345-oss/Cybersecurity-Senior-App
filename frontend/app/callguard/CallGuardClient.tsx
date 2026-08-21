@@ -5,6 +5,8 @@ import { startSession, addEvent, getCurrentUser, RiskResponse } from './api'
 import ChipGrid from './components/ChipGrid'
 import RiskCard from './components/RiskCard'
 import EmptyState from './components/EmptyState'
+import { useTranslation } from '../i18n/LanguageProvider'
+import { interpolate } from '../i18n/get-dictionary'
 
 const signals = [
   'urgency',
@@ -19,13 +21,14 @@ const signals = [
   'too_good_to_be_true',
   'asks_to_keep_secret',
   'caller_id_mismatch',
-]
+] as const
 
 interface CallGuardClientProps {
   sharedSessionId?: string | null
 }
 
 export default function CallGuardClient({ sharedSessionId = null }: CallGuardClientProps) {
+  const { dictionary: d } = useTranslation()
   const [selectedSignals, setSelectedSignals] = useState<Set<string>>(new Set())
   const [risk, setRisk] = useState<RiskResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -41,23 +44,23 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
   const quickActions = useMemo(
     () => [
       {
-        title: "I'm on a call — help me",
-        subtitle: 'Live coaching for suspicious callers',
+        title: d.dashboard.quickActionCall.title,
+        subtitle: d.dashboard.quickActionCall.subtitle,
       },
       {
-        title: 'Before I send money',
-        subtitle: 'Check payment risk fast',
+        title: d.dashboard.quickActionMoney.title,
+        subtitle: d.dashboard.quickActionMoney.subtitle,
       },
       {
-        title: 'Check a message or link',
-        subtitle: 'Inbox phishing triage',
+        title: d.dashboard.quickActionInbox.title,
+        subtitle: d.dashboard.quickActionInbox.subtitle,
       },
       {
-        title: 'Identity protection steps',
-        subtitle: 'Freeze credit checklist',
+        title: d.dashboard.quickActionIdentity.title,
+        subtitle: d.dashboard.quickActionIdentity.subtitle,
       },
     ],
-    []
+    [d]
   )
 
   const toggleSignal = async (item: string) => {
@@ -90,7 +93,7 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
 
   const handleStartSession = async () => {
     if (selectedSignals.size === 0) {
-      setError('Please select at least one signal')
+      setError(d.callguard.selectSignal)
       return
     }
 
@@ -104,7 +107,7 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
         const user = await getCurrentUser()
         userId = user.id
       } catch {
-        setError('Please log in to use CallGuard. The backend requires authentication.')
+        setError(d.callguard.loginRequired)
         setLoading(false)
         return
       }
@@ -124,20 +127,20 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
       }
     } catch (err) {
       console.error('CallGuard error:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start session. Please try again.'
+      const errorMessage = err instanceof Error ? err.message : d.callguard.startFailed
 
       if (
         errorMessage.includes('401') ||
         errorMessage.includes('Authentication') ||
         errorMessage.includes('Unauthorized')
       ) {
-        setError('Please log in to use CallGuard. The backend requires authentication.')
+        setError(d.callguard.loginRequired)
       } else if (
         errorMessage.includes('connect') ||
         errorMessage.includes('fetch') ||
         errorMessage.includes('Network')
       ) {
-        setError(`Connection error: ${errorMessage}. Make sure the backend is running on port 8000.`)
+        setError(interpolate(d.callguard.connectionError, { message: errorMessage }))
       } else {
         setError(errorMessage)
       }
@@ -149,13 +152,16 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
 
   const shareSummary = async () => {
     if (!risk) return
-    const summary = `Titanium Guardian CallGuard summary: ${risk.level} risk score ${risk.score}.`
+    const summary = interpolate(d.callguard.shareText, {
+      level: risk.level,
+      score: risk.score,
+    })
     try {
       if (navigator.share) {
         await navigator.share({ text: summary })
       } else {
         await navigator.clipboard.writeText(summary)
-        alert('Summary copied to clipboard')
+        alert(d.callguard.summaryCopied)
       }
     } catch (shareError) {
       console.error('Failed to share summary:', shareError)
@@ -165,7 +171,7 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{d.callguard.quickActions}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {quickActions.map((action) => (
             <div key={action.title} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -177,10 +183,10 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">I&apos;m on a call — help me</h2>
-        <p className="text-sm text-gray-600 mb-6">Tap any signals you recognize while you&apos;re on the line.</p>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-2">{d.callguard.onCallHelp}</h2>
+        <p className="text-sm text-gray-600 mb-6">{d.callguard.onCallHelpHint}</p>
 
-        <ChipGrid items={signals} selected={selectedSignals} onToggle={toggleSignal} />
+        <ChipGrid items={[...signals]} selected={selectedSignals} onToggle={toggleSignal} />
 
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -194,10 +200,12 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
             onClick={handleStartSession}
             disabled={loading || selectedSignals.size === 0}
           >
-            {loading ? 'Starting...' : 'Start Live Session'}
+            {loading ? d.callguard.starting : d.callguard.startLiveSession}
           </button>
           {sessionId && (
-            <span className="text-sm text-gray-600">Session ID: {sessionId}</span>
+            <span className="text-sm text-gray-600">
+              {interpolate(d.callguard.sessionId, { id: sessionId })}
+            </span>
           )}
         </div>
       </div>
@@ -205,8 +213,8 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
       {!risk && !loading && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <EmptyState
-            title="No session started yet"
-            description="Select any signals you recognize during a call, then click 'Start Live Session' to get real-time coaching."
+            title={d.callguard.emptyTitle}
+            description={d.callguard.emptyDescription}
             icon="📞"
           />
         </div>
@@ -219,7 +227,7 @@ export default function CallGuardClient({ sharedSessionId = null }: CallGuardCli
             className="px-6 py-3 bg-gray-200 text-gray-900 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
             onClick={shareSummary}
           >
-            Share summary
+            {d.callguard.shareSummary}
           </button>
         </div>
       )}

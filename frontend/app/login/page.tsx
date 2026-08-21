@@ -6,11 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 import { useAuth } from '../contexts/AuthContext'
 import { exchangeGoogleToken, getErrorMessage } from '../utils/auth'
+import { useTranslation } from '../i18n/LanguageProvider'
+import LanguageToggle from '../i18n/LanguageToggle'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { loginWithTokens } = useAuth()
+  const { dictionary: d } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -50,14 +53,14 @@ function LoginForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(getErrorMessage(data.detail, 'Invalid email or password. Please try again.'))
+        setError(getErrorMessage(data.detail, d.login.invalidCredentials))
         setLoading(false)
         return
       }
 
       await completeLogin(data)
     } catch {
-      setError('Network error. Please check your connection and try again.')
+      setError(d.common.networkError)
       setLoading(false)
     }
   }
@@ -70,18 +73,21 @@ function LoginForm() {
       const data = await exchangeGoogleToken(idToken)
       await completeLogin(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign in with Google.')
+      setError(err instanceof Error ? err.message : d.login.googleFailed)
       setLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-4 right-4">
+        <LanguageToggle compact />
+      </div>
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">Log In</h2>
+          <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">{d.login.title}</h2>
           <p className="text-center text-gray-600">
-            Sign in to your Titanium Guardian account
+            {d.login.subtitle}
           </p>
         </div>
 
@@ -103,7 +109,7 @@ function LoginForm() {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+              <span className="px-2 bg-white text-gray-500">{d.login.orContinueEmail}</span>
             </div>
           </div>
         </div>
@@ -112,7 +118,7 @@ function LoginForm() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+                {d.login.emailLabel}
               </label>
               <input
                 id="email"
@@ -123,13 +129,13 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
-                placeholder="your.email@example.com"
+                placeholder={d.login.emailPlaceholder}
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+                {d.login.passwordLabel}
               </label>
               <input
                 id="password"
@@ -140,7 +146,7 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
-                placeholder="Enter your password"
+                placeholder={d.login.passwordPlaceholder}
               />
             </div>
           </div>
@@ -151,15 +157,15 @@ function LoginForm() {
               disabled={loading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Logging in...' : 'Log In'}
+              {loading ? d.login.submitting : d.login.submit}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
+              {d.login.noAccount}{' '}
               <Link href="/signup" className="font-medium text-gray-900 hover:text-gray-700">
-                Sign Up
+                {d.login.signUpLink}
               </Link>
             </p>
           </div>
@@ -170,11 +176,13 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const { dictionary: d } = useTranslation()
+
   return (
     <Suspense
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-gray-600">Loading...</div>
+          <div className="text-gray-600">{d.common.loading}</div>
         </div>
       }
     >

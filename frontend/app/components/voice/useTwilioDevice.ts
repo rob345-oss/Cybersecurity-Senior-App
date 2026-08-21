@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Device, Call } from '@twilio/voice-sdk'
 import { getVoiceToken, registerBrowserCall } from './voiceApi'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTranslation } from '../../i18n/LanguageProvider'
 
 export type DeviceStatus = 'idle' | 'loading' | 'ready' | 'error' | 'on-call'
 
 export function useTwilioDevice() {
   const { user } = useAuth()
+  const { dictionary: d } = useTranslation()
   const deviceRef = useRef<Device | null>(null)
   const activeCallRef = useRef<Call | null>(null)
   const [status, setStatus] = useState<DeviceStatus>('idle')
@@ -41,7 +43,7 @@ export function useTwilioDevice() {
           if (!cancelled) setStatus('ready')
         })
         device.on('error', (err) => {
-          setError(err.message || 'Twilio device error')
+          setError(err.message || d.voice.twilioDeviceError)
           setStatus('error')
         })
         device.on('incoming', (call) => {
@@ -55,7 +57,7 @@ export function useTwilioDevice() {
         deviceRef.current = device
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to initialize phone')
+          setError(err instanceof Error ? err.message : d.voice.failedInitPhone)
           setStatus('error')
         }
       }
@@ -70,7 +72,7 @@ export function useTwilioDevice() {
       deviceRef.current?.destroy()
       deviceRef.current = null
     }
-  }, [user])
+  }, [user, d.voice.twilioDeviceError, d.voice.failedInitPhone])
 
   useEffect(() => {
     if (!activeCall) {
@@ -120,16 +122,16 @@ export function useTwilioDevice() {
       }),
     })
     const data = await response.json()
-    if (!response.ok) throw new Error(data.detail || 'Failed to start session')
+    if (!response.ok) throw new Error(data.detail || d.callguard.startFailed)
     const id = data.session_id as string
     setSessionId(id)
     return id
-  }, [user])
+  }, [user, d.callguard.startFailed])
 
   const connectOutbound = useCallback(
     async (to: string) => {
       const device = deviceRef.current
-      if (!device || !user) throw new Error('Phone not ready')
+      if (!device || !user) throw new Error(d.voice.phoneNotReady)
 
       const sid = sessionId || (await startSession())
       let normalized = to.trim()
@@ -151,7 +153,7 @@ export function useTwilioDevice() {
       bindCallHandlers(call, callSidParam || '')
       return { sessionId: sid, call }
     },
-    [user, sessionId, startSession, bindCallHandlers]
+    [user, sessionId, startSession, bindCallHandlers, d.voice.phoneNotReady]
   )
 
   const acceptIncoming = useCallback(async () => {
@@ -209,7 +211,8 @@ export function useTwilioDevice() {
     declineIncoming,
     hangUp,
     toggleMute,
-    incomingCallerId: incomingCall?.parameters?.From || 'Unknown',
-    activeLabel: activeCall?.parameters?.To || activeCall?.parameters?.From || 'Active call',
+    incomingCallerId: incomingCall?.parameters?.From || d.common.unknown,
+    activeLabel:
+      activeCall?.parameters?.To || activeCall?.parameters?.From || d.voice.activeCall,
   }
 }
