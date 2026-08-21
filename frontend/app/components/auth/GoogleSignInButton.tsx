@@ -14,7 +14,7 @@ export default function GoogleSignInButton({
   onError,
   disabled = false,
 }: GoogleSignInButtonProps) {
-  const { dictionary: d, locale } = useTranslation()
+  const { dictionary: d } = useTranslation()
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
   if (!clientId) {
@@ -52,7 +52,6 @@ export default function GoogleSignInButton({
         text="continue_with"
         shape="rectangular"
         width={320}
-        locale={locale === 'es' ? 'es' : 'en'}
       />
     </div>
   )
