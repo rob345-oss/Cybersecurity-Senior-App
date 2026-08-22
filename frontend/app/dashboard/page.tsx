@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import { DollarSign, Mail, Phone, Shield, User, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import { getDisplayName } from '../utils/auth'
+import { getShareOnboardingSummary, tryGetProtectedNumber } from '../share-number/api'
 
 const quickActions = [
   {
@@ -60,16 +62,39 @@ const guards = [
   },
   {
     title: 'CareCircle',
-    description: 'Connect with trusted family members for support.',
-    href: null,
+    description: 'Share your protected number with trusted contacts.',
+    href: '/dashboard/share-number',
     icon: Users,
-    available: false,
-    disabled: true,
+    available: true,
   },
 ]
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const [showShareBanner, setShowShareBanner] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const [numberInfo, summary] = await Promise.all([
+          tryGetProtectedNumber(),
+          getShareOnboardingSummary(),
+        ])
+        if (cancelled) return
+        const activated = Boolean(numberInfo?.activated_at)
+        const incomplete = !summary.onboarding_completed && !summary.onboarding_deferred
+        setShowShareBanner(activated && incomplete)
+      } catch {
+        if (!cancelled) setShowShareBanner(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   if (!user) return null
 
@@ -88,6 +113,23 @@ export default function DashboardPage() {
           <p className="text-sm mt-1 text-amber-800">
             Check your inbox for a verification link, or contact support if you need help.
           </p>
+        </div>
+      )}
+
+      {showShareBanner && (
+        <div className="mb-8 rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-base font-semibold text-gray-900">Share your protected number</p>
+            <p className="text-sm text-gray-700 mt-1">
+              Help your trusted contacts save your new Titanium Guardian number.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/share-number"
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 text-base font-semibold rounded-lg bg-gray-900 text-white hover:bg-gray-800 shrink-0"
+          >
+            Get started
+          </Link>
         </div>
       )}
 
@@ -115,11 +157,9 @@ export default function DashboardPage() {
             const card = (
               <div
                 className={`bg-white p-6 rounded-xl border border-gray-200 h-full ${
-                  guard.disabled
-                    ? 'opacity-60 cursor-not-allowed'
-                    : guard.available
-                      ? 'hover:shadow-lg hover:border-gray-300 transition-shadow cursor-pointer'
-                      : 'hover:shadow-md transition-shadow cursor-pointer'
+                  guard.available
+                    ? 'hover:shadow-lg hover:border-gray-300 transition-shadow cursor-pointer'
+                    : 'hover:shadow-md transition-shadow cursor-pointer'
                 }`}
               >
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
@@ -131,7 +171,7 @@ export default function DashboardPage() {
                     <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
                       Open
                     </span>
-                  ) : guard.disabled ? null : (
+                  ) : (
                     <span className="text-xs font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
                       Coming soon
                     </span>
@@ -146,7 +186,7 @@ export default function DashboardPage() {
               </div>
             )
 
-            if (guard.href && !guard.disabled) {
+            if (guard.href) {
               return (
                 <Link key={guard.title} href={guard.href} className="block">
                   {card}
