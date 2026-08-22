@@ -30,8 +30,7 @@ class HeroSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Semantics(
-                heading: true,
-                level: 1,
+                header: true,
                 child: Text(
                   'Cybersecurity operations built for relentless resilience.',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -92,10 +91,10 @@ class HeroSection extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 28),
-              Wrap(
+              const Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: const [
+                children: [
                   _MetricTile(label: 'Telemetry sources', value: '2,400+'),
                   _MetricTile(label: 'Avg. response time', value: '4.6 min'),
                   _MetricTile(label: 'Automation coverage', value: '78%'),
@@ -118,8 +117,7 @@ class HeroSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Semantics(
-                  heading: true,
-                  level: 2,
+                  header: true,
                   child: Text(
                     'Live Security Posture',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -129,22 +127,22 @@ class HeroSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _StatusRow(
+                const _StatusRow(
                   label: 'Critical alerts',
                   value: '06',
-                  color: const Color(0xFFFF6B6B),
+                  color: Color(0xFFFF6B6B),
                 ),
                 const SizedBox(height: 12),
-                _StatusRow(
+                const _StatusRow(
                   label: 'Open investigations',
                   value: '18',
-                  color: const Color(0xFFFFD166),
+                  color: Color(0xFFFFD166),
                 ),
                 const SizedBox(height: 12),
-                _StatusRow(
+                const _StatusRow(
                   label: 'Automations running',
                   value: '145',
-                  color: const Color(0xFF06D6A0),
+                  color: Color(0xFF06D6A0),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -156,9 +154,9 @@ class HeroSection extends StatelessWidget {
                   ),
                   child: Semantics(
                     label: 'Automated response summary',
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Automated response summary',
                           style: TextStyle(color: Colors.white70, fontSize: 12),
@@ -242,7 +240,7 @@ class _StatusRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '$label: $value, $_colorDescription() status',
+      label: '$label: $value, ${_getColorDescription()} status',
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

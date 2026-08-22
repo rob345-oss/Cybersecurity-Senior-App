@@ -1,3 +1,8 @@
+'use client'
+
+import { useTranslation } from '../../i18n/LanguageProvider'
+import { interpolate } from '../../i18n/get-dictionary'
+
 interface RiskBadgeProps {
   level: string
   score: number
@@ -11,18 +16,18 @@ const levelToClass = (level: string) => {
 }
 
 export default function RiskBadge({ level, score }: RiskBadgeProps) {
+  const { dictionary: d } = useTranslation()
   const badgeClass = levelToClass(level)
-  
+
   const colorClasses = {
     low: 'bg-green-100 text-green-800',
     medium: 'bg-yellow-100 text-yellow-800',
     high: 'bg-red-100 text-red-800',
   }
-  
+
   return (
     <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${colorClasses[badgeClass]}`}>
-      {level} risk · {score}
+      {interpolate(d.callguard.riskBadge, { level, score })}
     </span>
   )
 }
-

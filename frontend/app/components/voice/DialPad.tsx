@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslation } from '../../i18n/LanguageProvider'
+
 interface DialPadProps {
   value: string
   onChange: (value: string) => void
@@ -9,6 +11,8 @@ interface DialPadProps {
 }
 
 export default function DialPad({ value, onChange, onCall, disabled, loading }: DialPadProps) {
+  const { dictionary: d } = useTranslation()
+
   const append = (digit: string) => {
     if (disabled) return
     onChange(value + digit)
@@ -22,7 +26,7 @@ export default function DialPad({ value, onChange, onCall, disabled, loading }: 
         type="tel"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="+1 (555) 123-4567"
+        placeholder={d.voice.phonePlaceholder}
         disabled={disabled}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-gray-900 focus:border-gray-900"
       />
@@ -45,7 +49,7 @@ export default function DialPad({ value, onChange, onCall, disabled, loading }: 
         disabled={disabled || !value.trim() || loading}
         className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
-        {loading ? 'Calling...' : 'Call'}
+        {loading ? d.voice.calling : d.voice.call}
       </button>
     </div>
   )

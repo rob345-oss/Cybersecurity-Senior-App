@@ -3,9 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '../i18n/LanguageProvider'
+import LanguageToggle from '../i18n/LanguageToggle'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const { dictionary: d } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -17,19 +20,19 @@ export default function SignUpPage() {
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 12) {
-      return 'Password must be at least 12 characters long'
+      return d.signup.passwordMinLength
     }
     if (!/[A-Z]/.test(pwd)) {
-      return 'Password must contain at least one uppercase letter'
+      return d.signup.passwordUppercase
     }
     if (!/[a-z]/.test(pwd)) {
-      return 'Password must contain at least one lowercase letter'
+      return d.signup.passwordLowercase
     }
     if (!/\d/.test(pwd)) {
-      return 'Password must contain at least one digit'
+      return d.signup.passwordDigit
     }
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) {
-      return 'Password must contain at least one special character'
+      return d.signup.passwordSpecial
     }
     return null
   }
@@ -39,13 +42,11 @@ export default function SignUpPage() {
     setError('')
     setSuccess(false)
 
-    // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(d.signup.passwordsMismatch)
       return
     }
 
-    // Validate password strength
     const passwordError = validatePassword(password)
     if (passwordError) {
       setError(passwordError)
@@ -72,20 +73,19 @@ export default function SignUpPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.detail || 'Failed to create account. Please try again.')
+        setError(data.detail || d.signup.createFailed)
         setLoading(false)
         return
       }
 
       setSuccess(true)
       setError('')
-      
-      // Redirect to app after 2 seconds
+
       setTimeout(() => {
         router.push('/login')
       }, 2000)
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.')
+    } catch {
+      setError(d.common.networkError)
       setLoading(false)
     }
   }
@@ -93,20 +93,23 @@ export default function SignUpPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="absolute top-4 right-4">
+          <LanguageToggle compact />
+        </div>
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Account Created!</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{d.signup.successTitle}</h2>
             <p className="text-gray-600 mb-6">
-              Your account has been created successfully. Please check your email for a verification link.
+              {d.signup.successBody}
             </p>
             <p className="text-sm text-gray-500 mb-4">
-              You will be redirected to the app shortly...
+              {d.signup.redirecting}
             </p>
             <Link
               href="/login"
               className="inline-block px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
             >
-              Go to Log In
+              {d.signup.goToLogin}
             </Link>
           </div>
         </div>
@@ -116,11 +119,14 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-4 right-4">
+        <LanguageToggle compact />
+      </div>
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">Create an Account</h2>
+          <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">{d.signup.title}</h2>
           <p className="text-center text-gray-600">
-            Sign up for Titanium Guardian to get started
+            {d.signup.subtitle}
           </p>
         </div>
 
@@ -134,7 +140,7 @@ export default function SignUpPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address *
+                {d.signup.emailLabel}
               </label>
               <input
                 id="email"
@@ -145,13 +151,13 @@ export default function SignUpPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
-                placeholder="your.email@example.com"
+                placeholder={d.signup.emailPlaceholder}
               />
             </div>
 
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
+                {d.signup.fullNameLabel}
               </label>
               <input
                 id="fullName"
@@ -162,13 +168,13 @@ export default function SignUpPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
-                placeholder="John Doe"
+                placeholder={d.signup.fullNamePlaceholder}
               />
             </div>
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number (Optional)
+                {d.signup.phoneLabel}
               </label>
               <input
                 id="phone"
@@ -178,13 +184,13 @@ export default function SignUpPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
-                placeholder="+1 (555) 123-4567"
+                placeholder={d.signup.phonePlaceholder}
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password *
+                {d.signup.passwordLabel}
               </label>
               <input
                 id="password"
@@ -195,16 +201,16 @@ export default function SignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
-                placeholder="Create a strong password"
+                placeholder={d.signup.passwordPlaceholder}
               />
               <p className="mt-1 text-xs text-gray-500">
-                Minimum 12 characters with uppercase, lowercase, number, and special character
+                {d.signup.passwordHint}
               </p>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password *
+                {d.signup.confirmPasswordLabel}
               </label>
               <input
                 id="confirmPassword"
@@ -215,7 +221,7 @@ export default function SignUpPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-gray-900 focus:border-gray-900 focus:z-10 sm:text-sm"
-                placeholder="Re-enter your password"
+                placeholder={d.signup.confirmPasswordPlaceholder}
               />
             </div>
           </div>
@@ -226,15 +232,15 @@ export default function SignUpPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? d.signup.submitting : d.signup.submit}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
+              {d.signup.hasAccount}{' '}
               <Link href="/login" className="font-medium text-gray-900 hover:text-gray-700">
-                Log In
+                {d.signup.logInLink}
               </Link>
             </p>
           </div>
@@ -243,4 +249,3 @@ export default function SignUpPage() {
     </div>
   )
 }
-

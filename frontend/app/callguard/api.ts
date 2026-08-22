@@ -31,7 +31,8 @@ export interface SessionStartResponse {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    let errorMessage = 'Request failed'
+    const { localizedRequestFailed } = await import('../i18n/client-locale')
+    let errorMessage = localizedRequestFailed()
     try {
       const errorData = await response.json()
       errorMessage = errorData.detail || errorData.message || errorMessage

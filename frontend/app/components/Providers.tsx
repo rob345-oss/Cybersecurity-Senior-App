@@ -2,11 +2,21 @@
 
 import { AuthProvider } from '../contexts/AuthContext'
 import GoogleAuthProvider from './auth/GoogleAuthProvider'
+import { LanguageProvider } from '../i18n/LanguageProvider'
+import type { Locale } from '../i18n/config'
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode
+  initialLocale: Locale
+}) {
   return (
-    <GoogleAuthProvider>
-      <AuthProvider>{children}</AuthProvider>
-    </GoogleAuthProvider>
+    <LanguageProvider initialLocale={initialLocale}>
+      <GoogleAuthProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </GoogleAuthProvider>
+    </LanguageProvider>
   )
 }

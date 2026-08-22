@@ -1,18 +1,24 @@
+'use client'
+
 import { DollarSign } from 'lucide-react'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import ComingSoonModule from '../../components/dashboard/ComingSoonModule'
+import { useTranslation } from '../../i18n/LanguageProvider'
 
 export default function DashboardMoneyGuardPage() {
+  const { dictionary: d } = useTranslation()
+  const g = d.dashboard.guards.moneyguard
+
   return (
     <>
       <DashboardHeader
-        title="MoneyGuard"
-        description="Assess payment risk before you send"
+        title={g.title}
+        description={g.navDescription}
       />
       <ComingSoonModule
         icon={DollarSign}
-        title="MoneyGuard"
-        description="Assess payment risk before you send money to prevent financial scams."
+        title={g.title}
+        description={g.comingSoonDescription}
       />
     </>
   )

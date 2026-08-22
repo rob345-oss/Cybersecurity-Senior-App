@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { dashboardNavItems } from './navConfig'
+import { DollarSign, LayoutDashboard, Mail, Phone, User } from 'lucide-react'
 import UserMenu from './UserMenu'
+import { useTranslation } from '../../i18n/LanguageProvider'
+import LanguageToggle from '../../i18n/LanguageToggle'
 
 interface DashboardSidebarProps {
   onNavigate?: () => void
@@ -11,6 +13,31 @@ interface DashboardSidebarProps {
 
 export default function DashboardSidebar({ onNavigate }: DashboardSidebarProps) {
   const pathname = usePathname()
+  const { dictionary: d } = useTranslation()
+
+  const navItems = [
+    { href: '/dashboard', label: d.dashboard.navHome, icon: LayoutDashboard },
+    {
+      href: '/dashboard/callguard',
+      label: d.dashboard.guards.callguard.title,
+      icon: Phone,
+    },
+    {
+      href: '/dashboard/moneyguard',
+      label: d.dashboard.guards.moneyguard.title,
+      icon: DollarSign,
+    },
+    {
+      href: '/dashboard/inboxguard',
+      label: d.dashboard.guards.inboxguard.title,
+      icon: Mail,
+    },
+    {
+      href: '/dashboard/identitywatch',
+      label: d.dashboard.guards.identitywatch.title,
+      icon: User,
+    },
+  ]
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -23,13 +50,13 @@ export default function DashboardSidebar({ onNavigate }: DashboardSidebarProps) 
     <div className="flex flex-col h-full">
       <div className="mb-8">
         <Link href="/dashboard" className="block" onClick={onNavigate}>
-          <span className="text-lg font-bold text-gray-900">Titanium Guardian</span>
-          <span className="block text-xs text-gray-500 mt-1">Your digital guardian</span>
+          <span className="text-lg font-bold text-gray-900">{d.common.brandGuardian}</span>
+          <span className="block text-xs text-gray-500 mt-1">{d.dashboard.tagline}</span>
         </Link>
       </div>
 
       <nav className="flex-1 space-y-1">
-        {dashboardNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon
           const active = isActive(item.href)
           return (
@@ -44,11 +71,15 @@ export default function DashboardSidebar({ onNavigate }: DashboardSidebarProps) 
               }`}
             >
               <Icon className="w-5 h-5 shrink-0" />
-              {item.label}
+              <span className="truncate">{item.label}</span>
             </Link>
           )
         })}
       </nav>
+
+      <div className="hidden md:block mb-4">
+        <LanguageToggle />
+      </div>
 
       <UserMenu className="mt-auto" />
     </div>
