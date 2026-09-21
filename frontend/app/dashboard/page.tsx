@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { DollarSign, Mail, Phone, Shield, User, Users } from 'lucide-react'
+import { BookUser, DollarSign, Mail, Phone, Shield, User, Users } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import { getDisplayName } from '../utils/auth'
@@ -13,6 +13,11 @@ const quickActions = [
     href: '/dashboard/callguard',
   },
   {
+    title: 'Add people you trust',
+    subtitle: 'Connect contacts and Trusted Callers',
+    href: '/dashboard/contacts',
+  },
+  {
     title: 'Before I send money',
     subtitle: 'Check payment risk fast',
     href: '/dashboard/moneyguard',
@@ -22,11 +27,6 @@ const quickActions = [
     subtitle: 'Inbox phishing triage',
     href: '/dashboard/inboxguard',
   },
-  {
-    title: 'Identity protection steps',
-    subtitle: 'Freeze credit checklist',
-    href: '/dashboard/identitywatch',
-  },
 ]
 
 const guards = [
@@ -35,6 +35,13 @@ const guards = [
     description: 'Live coaching during suspicious calls.',
     href: '/dashboard/callguard',
     icon: Phone,
+    available: true,
+  },
+  {
+    title: 'Contacts & Trusted Callers',
+    description: 'Protect calls from people you know.',
+    href: '/dashboard/contacts',
+    icon: BookUser,
     available: true,
   },
   {
