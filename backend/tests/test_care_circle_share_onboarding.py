@@ -128,56 +128,51 @@ class TestCareCircleEndpoints:
             user.protected_number_activated_at = activated_at
             return user
 
-        with patch("backend.care_circle.router.get_current_user", return_value=mock_user):
-            with patch("backend.care_circle.router.get_db", return_value=AsyncMock()):
-                with patch("backend.care_circle.router.CareCircleRepository") as repo_cls:
-                    repo = repo_cls.return_value
-                    repo.activate_protected_number = AsyncMock(side_effect=fake_activate)
-                    repo.get_protected_number_info = AsyncMock(
-                        return_value={
-                            "protected_number": "+15551234567",
-                            "protected_number_formatted": "+1 (555) 123-4567",
-                            "activated_at": activated_at.isoformat(),
-                            "onboarding_completed_at": None,
-                            "onboarding_deferred_at": None,
-                        }
-                    )
-                    app.dependency_overrides[
-                        __import__(
-                            "backend.auth.dependencies", fromlist=["get_current_user"]
-                        ).get_current_user
-                    ] = lambda: mock_user
-                    app.dependency_overrides[
-                        __import__(
-                            "backend.database.connection", fromlist=["get_db"]
-                        ).get_db
-                    ] = lambda: AsyncMock()
+        from backend.auth.dependencies import get_current_user
+        from backend.database.connection import get_db
 
-                    response = client.post(
-                        "/v1/care-circle/protected-number/activate",
-                        headers=auth_headers,
-                    )
+        with patch("backend.care_circle.router.CareCircleRepository") as repo_cls:
+            repo = repo_cls.return_value
+            repo.activate_protected_number = AsyncMock(side_effect=fake_activate)
+            repo.get_protected_number_info = AsyncMock(
+                return_value={
+                    "protected_number": "+15551234567",
+                    "protected_number_formatted": "+1 (555) 123-4567",
+                    "activated_at": activated_at.isoformat(),
+                    "onboarding_completed_at": None,
+                    "onboarding_deferred_at": None,
+                }
+            )
+            app.dependency_overrides[get_current_user] = lambda: mock_user
+            app.dependency_overrides[get_db] = lambda: AsyncMock()
+            try:
+                response = client.post(
+                    "/v1/care-circle/protected-number/activate",
+                    headers=auth_headers,
+                )
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
-        app.dependency_overrides.clear()
         assert response.status_code == 200
         data = response.json()
         assert data["protected_number_formatted"]
         assert data["activated_at"]
 
     def test_create_trusted_contact_validates_phone(self, client, mock_user, auth_headers):
-        app.dependency_overrides[
-            __import__("backend.auth.dependencies", fromlist=["get_current_user"]).get_current_user
-        ] = lambda: mock_user
-        app.dependency_overrides[
-            __import__("backend.database.connection", fromlist=["get_db"]).get_db
-        ] = lambda: AsyncMock()
+        from backend.auth.dependencies import get_current_user
+        from backend.database.connection import get_db
 
-        response = client.post(
-            "/v1/care-circle/trusted-contacts",
-            headers=auth_headers,
-            json={"first_name": "Jamie", "phone": "bad", "is_selected": True},
-        )
-        app.dependency_overrides.clear()
+        app.dependency_overrides[get_current_user] = lambda: mock_user
+        app.dependency_overrides[get_db] = lambda: AsyncMock()
+        try:
+            response = client.post(
+                "/v1/care-circle/trusted-contacts",
+                headers=auth_headers,
+                json={"first_name": "Jamie", "phone": "bad", "is_selected": True},
+            )
+        finally:
+            app.dependency_overrides.pop(get_db, None)
+
         assert response.status_code == 422
 
     def test_share_event_status_update(self, client, mock_user, auth_headers):
@@ -189,6 +184,9 @@ class TestCareCircleEndpoints:
         mock_contact.share_event.custom_message_encrypted = None
         mock_contact.share_event.sharing_status = "share_opened"
         mock_contact.share_event.last_share_action_at = datetime.now(timezone.utc)
+
+        from backend.auth.dependencies import get_current_user
+        from backend.database.connection import get_db
 
         with patch("backend.care_circle.router.CareCircleRepository") as repo_cls:
             repo = repo_cls.return_value
@@ -214,19 +212,16 @@ class TestCareCircleEndpoints:
                 }
             )
 
-            app.dependency_overrides[
-                __import__("backend.auth.dependencies", fromlist=["get_current_user"]).get_current_user
-            ] = lambda: mock_user
-            app.dependency_overrides[
-                __import__("backend.database.connection", fromlist=["get_db"]).get_db
-            ] = lambda: AsyncMock()
+            app.dependency_overrides[get_current_user] = lambda: mock_user
+            app.dependency_overrides[get_db] = lambda: AsyncMock()
+            try:
+                response = client.put(
+                    f"/v1/care-circle/share-events/{contact_id}",
+                    headers=auth_headers,
+                    json={"sharing_status": "share_opened"},
+                )
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
-            response = client.put(
-                f"/v1/care-circle/share-events/{contact_id}",
-                headers=auth_headers,
-                json={"sharing_status": "share_opened"},
-            )
-
-        app.dependency_overrides.clear()
         assert response.status_code == 200
         assert response.json()["sharing_status"] == "share_opened"
