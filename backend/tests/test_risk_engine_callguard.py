@@ -35,7 +35,7 @@ class TestCallGuardRuleBased:
         risk = callguard.assess(["verification_code_request"], use_ai=False)
         
         assert risk.score == 35
-        assert risk.level == "low"
+        assert risk.level == "medium"
         assert "verification code" in risk.reasons[0].lower()
     
     def test_single_signal_bank_impersonation(self):

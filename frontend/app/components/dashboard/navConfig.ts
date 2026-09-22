@@ -1,5 +1,12 @@
 import type { LucideIcon } from 'lucide-react'
-import { DollarSign, LayoutDashboard, Mail, Phone, User } from 'lucide-react'
+import {
+  BookUser,
+  DollarSign,
+  LayoutDashboard,
+  Mail,
+  Phone,
+  User,
+} from 'lucide-react'
 
 export interface DashboardNavItem {
   href: string
@@ -15,6 +22,12 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: 'CallGuard',
     icon: Phone,
     description: 'Live coaching for suspicious calls',
+  },
+  {
+    href: '/dashboard/contacts',
+    label: 'Contacts & Trusted Callers',
+    icon: BookUser,
+    description: 'Protect calls from people you know',
   },
   {
     href: '/dashboard/moneyguard',
@@ -47,6 +60,10 @@ export const modulePageMeta: Record<
   '/dashboard/callguard': {
     title: 'CallGuard',
     description: 'Live coaching for suspicious calls',
+  },
+  '/dashboard/contacts': {
+    title: 'Contacts & Trusted Callers',
+    description: 'Protect calls from people you know',
   },
   '/dashboard/moneyguard': {
     title: 'MoneyGuard',

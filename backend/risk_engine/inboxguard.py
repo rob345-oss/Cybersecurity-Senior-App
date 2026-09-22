@@ -22,6 +22,22 @@ MEDICARE_SCAM_TERMS = {"medicare number", "benefits verification", "new card", "
 URL_SHORTENERS = {"bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly"}
 
 
+def _contains_term(text: str, term: str) -> bool:
+    """Match multi-word phrases as substrings; match short tokens on word boundaries."""
+    term = term.lower()
+    if " " in term or "-" in term:
+        return term in text
+    return re.search(rf"\b{re.escape(term)}\b", text) is not None
+
+
+def _any_term(text: str, terms: set[str]) -> bool:
+    return any(_contains_term(text, term) for term in terms)
+
+
+def _matching_terms(text: str, terms: set[str]) -> List[str]:
+    return [term for term in terms if _contains_term(text, term)]
+
+
 def _extract_urls(text: str) -> List[str]:
     return re.findall(r"https?://\S+", text)
 
@@ -55,43 +71,43 @@ def analyze_text(text: str, channel: str) -> RiskResponse:
     reasons: List[str] = []
     lower = text.lower()
 
-    if any(term in lower for term in URGENCY_TERMS):
+    if _any_term(lower, URGENCY_TERMS):
         score += 20
         reasons.append("Urgency language detected")
-    if any(term in lower for term in PAYMENT_TERMS):
+    if _any_term(lower, PAYMENT_TERMS):
         score += 20
         reasons.append("Payment request detected")
-    if any(term in lower for term in OTP_TERMS):
+    if _any_term(lower, OTP_TERMS):
         score += 25
         reasons.append("Verification code request detected")
     if "attachment" in lower:
         score += 10
         reasons.append("Attachment mentioned")
-    entities = [term for term in IMPERSONATION_TERMS if term in lower]
+    entities = _matching_terms(lower, IMPERSONATION_TERMS)
     if entities:
         score += 20
         reasons.append("Impersonation terms detected")
     
     # Common scam pattern detection
-    if any(term in lower for term in GRANDPARENT_SCAM_TERMS):
+    if _any_term(lower, GRANDPARENT_SCAM_TERMS):
         score += 25
         reasons.append("Grandparent/Family Emergency scam indicators detected")
-    if any(term in lower for term in ROMANCE_SCAM_TERMS):
+    if _any_term(lower, ROMANCE_SCAM_TERMS):
         score += 23
         reasons.append("Romance scam indicators detected")
-    if any(term in lower for term in LOTTERY_SCAM_TERMS):
+    if _any_term(lower, LOTTERY_SCAM_TERMS):
         score += 28
         reasons.append("Lottery/Sweepstakes scam indicators detected")
-    if any(term in lower for term in INVESTMENT_SCAM_TERMS):
+    if _any_term(lower, INVESTMENT_SCAM_TERMS):
         score += 25
         reasons.append("Investment scam indicators detected")
-    if any(term in lower for term in CHARITY_SCAM_TERMS):
+    if _any_term(lower, CHARITY_SCAM_TERMS):
         score += 20
         reasons.append("Charity scam indicators detected")
-    if any(term in lower for term in CONTRACTOR_SCAM_TERMS):
+    if _any_term(lower, CONTRACTOR_SCAM_TERMS):
         score += 22
         reasons.append("Contractor scam indicators detected")
-    if any(term in lower for term in MEDICARE_SCAM_TERMS):
+    if _any_term(lower, MEDICARE_SCAM_TERMS):
         score += 24
         reasons.append("Medicare scam indicators detected")
 

@@ -179,6 +179,10 @@ SAFE_SCRIPTS: Dict[str, SafeScript] = {
         say_this="I don't grant remote access. I'll contact support using the official site.",
         if_they_push_back="No remote access. I'm ending the call now.",
     ),
+    "remote_access_request": SafeScript(
+        say_this="I don't grant remote access. I'll contact support using the official site.",
+        if_they_push_back="No remote access. I'm ending the call now.",
+    ),
     "verification_code_request": SafeScript(
         say_this="I never share verification codes.",
         if_they_push_back="Without that, I can't proceed. Goodbye.",
@@ -252,6 +256,21 @@ def _build_call_context_text(call_context: Optional[CallContext]) -> str:
     
     if "caller_id" in call_context and call_context["caller_id"]:
         context_parts.append(f"Caller ID: {call_context['caller_id']}")
+
+    trusted = call_context.get("trusted_caller") if isinstance(call_context, dict) else None
+    if isinstance(trusted, dict) and trusted.get("trusted"):
+        name = trusted.get("name") or "a known contact"
+        relationship = trusted.get("relationship")
+        if relationship:
+            context_parts.append(
+                f"Trusted caller match: {name} (listed as {relationship}). "
+                "This number belongs to someone the user has marked as trusted."
+            )
+        else:
+            context_parts.append(
+                f"Trusted caller match: {name}. "
+                "This number belongs to someone the user has marked as trusted."
+            )
     
     if "transcript" in call_context and call_context["transcript"]:
         transcript = str(call_context["transcript"])
@@ -933,6 +952,74 @@ Prioritize user safety and provide clear guidance.""",
         return None
 
 
+HIGH_SEVERITY_SIGNALS = frozenset(
+    {
+        "verification_code_request",
+        "remote_access",
+        "asked_for_remote_access",
+        "secrecy",
+        "asked_to_keep_secret",
+        "bank_impersonation",
+        "government_impersonation",
+        "wire_transfer",
+        "gift_card",
+        "crypto",
+    }
+)
+
+
+def _apply_trusted_caller_context(
+    response: RiskResponse,
+    signals: List[str],
+    call_context: Optional[CallContext],
+) -> RiskResponse:
+    """Soften coaching when the caller is trusted and there are no high-severity signals.
+
+    Does not disable screening or auto-answer.
+    """
+    if not call_context or not isinstance(call_context, dict):
+        return response
+    trusted = call_context.get("trusted_caller")
+    if not isinstance(trusted, dict) or not trusted.get("trusted"):
+        return response
+
+    name = trusted.get("name") or "Someone you trust"
+    relationship = trusted.get("relationship")
+    label = f"{name} ({relationship})" if relationship else name
+
+    metadata = dict(response.metadata or {})
+    metadata["trusted_caller"] = {
+        "trusted": True,
+        "name": trusted.get("name"),
+        "relationship": relationship,
+        "contact_id": trusted.get("contact_id"),
+        "source": trusted.get("source"),
+    }
+
+    reasons = list(response.reasons or [])
+    prefix = f"{label} is on your Trusted Callers list."
+    if prefix not in reasons:
+        reasons.insert(0, prefix)
+
+    has_high = any(s in HIGH_SEVERITY_SIGNALS for s in signals)
+    score = response.score
+    next_action = response.next_action
+    if not has_high:
+        score = max(0, min(score, max(0, score - 25)))
+        next_action = (
+            f"This looks like {label}. Stay alert, but this number belongs to someone you trust."
+        )
+
+    return build_risk_response(
+        score=score,
+        reasons=reasons,
+        next_action=next_action,
+        recommended_actions=response.recommended_actions,
+        safe_script=response.safe_script,
+        metadata=metadata,
+    )
+
+
 def assess(
     signals: List[str], 
     call_context: Optional[CallContext] = None, 
@@ -962,6 +1049,7 @@ def assess(
             - duration: Call duration in seconds (int)
             - caller_name: Name of the caller (str, optional)
             - call_direction: "inbound" or "outbound" (str, optional)
+            - trusted_caller: Optional trusted-caller match metadata
         use_ai: Whether to attempt AI analysis (default: True).
                 If False, uses rule-based system directly.
         use_crewai: Whether to use CrewAI multi-agent system (default: True).
@@ -981,9 +1069,21 @@ def assess(
     if not signals:
         signals = []
     else:
-        # Filter out invalid signals
-        signals = [s for s in signals if isinstance(s, str) and s.strip()]
+        # Filter invalid entries and deduplicate while preserving order
+        seen = set()
+        cleaned: List[str] = []
+        for s in signals:
+            if not isinstance(s, str):
+                continue
+            key = s.strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(key)
+        signals = cleaned
     
+    result: Optional[RiskResponse] = None
+
     # Try CrewAI multi-agent system first (most sophisticated)
     if use_ai and use_crewai and OPENAI_API_KEY:
         try:
@@ -993,14 +1093,14 @@ def assess(
                     f"CrewAI multi-agent assessment completed: "
                     f"score={crewai_result.score}, level={crewai_result.level}"
                 )
-                return crewai_result
+                result = crewai_result
             else:
                 logger.warning("CrewAI assessment returned None, falling back to LangChain")
         except Exception as e:
             logger.warning(f"CrewAI assessment error: {e}, falling back to LangChain", exc_info=True)
     
     # Try LangChain assessment (structured prompts and chains)
-    if use_ai:
+    if result is None and use_ai:
         llm_instance = _get_llm()
         if llm_instance:
             try:
@@ -1010,7 +1110,7 @@ def assess(
                         f"LangChain assessment completed: "
                         f"score={langchain_result.score}, level={langchain_result.level}"
                     )
-                    return langchain_result
+                    result = langchain_result
                 else:
                     logger.warning("LangChain assessment returned None, falling back to rule-based system")
             except Exception as e:
@@ -1019,5 +1119,8 @@ def assess(
             logger.info("LLM not available, using rule-based system")
     
     # Fallback to rule-based system (always reliable)
-    logger.info("Using rule-based assessment system")
-    return _rule_based_assess(signals)
+    if result is None:
+        logger.info("Using rule-based assessment system")
+        result = _rule_based_assess(signals)
+
+    return _apply_trusted_caller_context(result, signals, call_context)
