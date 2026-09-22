@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { demoReducer, initialDemoState } from '../demoState'
-import { TRANSCRIPT_LINES } from '../demoData'
+import { SCREENING_STEPS, TRANSCRIPT_LINES } from '../demoData'
 
 describe('demoReducer', () => {
   it('starts at welcome and starts the call scenario', () => {
@@ -26,7 +26,9 @@ describe('demoReducer', () => {
   it('progresses risk through transcript reveals', () => {
     let state = demoReducer(initialDemoState(), { type: 'START_DEMO' })
     state = demoReducer(state, { type: 'ANSWER_CALL' })
-    state = demoReducer(state, { type: 'SET_SCREENING_STEP', index: 4 })
+    state = demoReducer(state, { type: 'SET_SCREENING_STEP', index: SCREENING_STEPS.length - 1 })
+    expect(state.stage).toBe('screening')
+    state = demoReducer(state, { type: 'SET_SCREENING_STEP', index: SCREENING_STEPS.length })
     expect(state.stage).toBe('suspicious')
     expect(state.riskLevel).toBe('suspicious')
 

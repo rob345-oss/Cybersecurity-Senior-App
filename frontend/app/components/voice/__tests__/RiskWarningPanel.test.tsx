@@ -47,7 +47,7 @@ describe('RiskWarningPanel', () => {
       />
     )
 
-    expect(screen.getByRole('alertdialog')).toHaveTextContent(/High-risk scam warning/i)
+    expect(screen.getByRole('alert')).toHaveTextContent(/High-risk scam warning/i)
     expect(screen.getByRole('button', { name: /End call/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^Continue anyway$/i }))

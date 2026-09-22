@@ -4,6 +4,7 @@ import {
   normalizePhone,
   formatPhoneForDisplay,
   phoneForSmsUri,
+  toOutboundE164,
 } from '@/app/utils/phone'
 import {
   buildPersonalizedMessage,
@@ -32,6 +33,15 @@ describe('phone utils', () => {
 
   it('prepares sms uri phone', () => {
     expect(phoneForSmsUri('(555) 123-4567')).toBe('5551234567')
+  })
+
+  it('dials 10-digit US numbers as E.164', () => {
+    expect(toOutboundE164('(301) 555-0192')).toBe('+13015550192')
+    expect(toOutboundE164('3015550192')).toBe('+13015550192')
+    expect(toOutboundE164('13015550192')).toBe('+13015550192')
+    expect(toOutboundE164('+1 (301) 555-0192')).toBe('+13015550192')
+    expect(toOutboundE164('+44 20 7946 0958')).toBe('+442079460958')
+    expect(toOutboundE164('')).toBe('')
   })
 })
 

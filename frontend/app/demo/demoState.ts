@@ -4,7 +4,7 @@
  */
 
 import type { RiskLevel } from './demoData'
-import { TRANSCRIPT_LINES } from './demoData'
+import { SCREENING_STEPS, TRANSCRIPT_LINES } from './demoData'
 
 export type DemoStage =
   | 'welcome'
@@ -143,7 +143,9 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
     case 'TOGGLE_TRANSCRIPT':
       return { ...state, showTranscript: !state.showTranscript }
     case 'SET_SCREENING_STEP': {
-      const atEnd = action.index >= 4
+      // Index === length means every step has already been shown. Using the
+      // last step index here hid "Risk level increases" and jumped away.
+      const atEnd = action.index >= SCREENING_STEPS.length
       const riskLevel = atEnd ? escalateRisk(state.riskLevel, 'suspicious') : state.riskLevel
       return {
         ...state,

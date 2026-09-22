@@ -67,6 +67,19 @@ describe('deriveCallPhase', () => {
     ).toBe('ended')
   })
 
+  it('keeps a live call ahead of a stale failed or ended flag', () => {
+    expect(
+      deriveCallPhase({
+        deviceStatus: 'on-call',
+        hasActiveCall: true,
+        isDialing: false,
+        isConnecting: false,
+        callFailed: true,
+        justEnded: true,
+      })
+    ).toBe('active')
+  })
+
   it('returns idle by default', () => {
     expect(
       deriveCallPhase({
