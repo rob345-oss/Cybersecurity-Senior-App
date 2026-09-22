@@ -53,9 +53,9 @@ export default function NavBar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
+            {demoLink()}
             {!loading && (
               <>
-                {demoLink()}
                 {isAuthenticated ? (
                   <>
                     <Link
@@ -121,9 +121,9 @@ export default function NavBar() {
             <Link href="#faq" className="block text-gray-600 hover:text-gray-900 py-2" onClick={closeMenu}>
               FAQ
             </Link>
+            {demoLink(`${demoButtonClassName} w-full`)}
             {!loading && (
               <div className="space-y-2 pt-2">
-                {demoLink(`${demoButtonClassName} w-full`)}
                 {isAuthenticated ? (
                   <>
                     <Link
