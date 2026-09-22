@@ -1,15 +1,32 @@
 'use client'
 
 import Link from 'next/link'
+import { Shield } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+
+const demoButtonClassName =
+  'inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors font-medium'
 
 export default function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { isAuthenticated, loading, logout } = useAuth()
 
+  const demoLink = (
+    <Link
+      href="/demo"
+      className={demoButtonClassName}
+      title="No signup required"
+      aria-label="Try Live Demo — no signup required"
+    >
+      <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
+      Try Live Demo
+    </Link>
+  )
+
   const authLinks = (
     <>
+      {demoLink}
       {isAuthenticated ? (
         <>
           <Link
@@ -105,6 +122,16 @@ export default function NavBar() {
             </Link>
             {!loading && (
               <div className="space-y-2 pt-2">
+                <Link
+                  href="/demo"
+                  className={`${demoButtonClassName} w-full`}
+                  title="No signup required"
+                  aria-label="Try Live Demo — no signup required"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  Try Live Demo
+                </Link>
                 {isAuthenticated ? (
                   <>
                     <Link
