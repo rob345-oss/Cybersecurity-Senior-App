@@ -1,5 +1,6 @@
 import { getAuthHeaders } from '../../utils/auth'
 import type { RiskResponse } from '../../callguard/api'
+import type { TrustedCallerInfo } from './types'
 
 const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -14,10 +15,12 @@ export interface VoiceWsMessage {
   transcript?: string
   chunk?: string
   signals?: string[]
+  detected_signals?: string[]
   session_id?: string
   call_sid?: string
   message?: string
   status?: string
+  trusted_caller?: TrustedCallerInfo
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {

@@ -5,6 +5,30 @@
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
+
+  /* CallGuard protection palette — calm authority, not alarmist cyber */
+  --cg-surface: #f7faf9;
+  --cg-surface-elevated: #ffffff;
+  --cg-ink: #0f1f1c;
+  --cg-ink-muted: #4a5c57;
+  --cg-trusted: #0d7a6f;
+  --cg-trusted-bg: #e6f5f2;
+  --cg-trusted-border: #9ad4cb;
+  --cg-unknown: #b45309;
+  --cg-unknown-bg: #fff8eb;
+  --cg-unknown-border: #f0c674;
+  --cg-possible: #c2410c;
+  --cg-possible-bg: #fff4ed;
+  --cg-possible-border: #fdba8c;
+  --cg-high: #b91c1c;
+  --cg-high-bg: #fef2f2;
+  --cg-high-border: #fca5a5;
+  --cg-call: #15803d;
+  --cg-call-hover: #166534;
+  --cg-end: #dc2626;
+  --cg-end-hover: #b91c1c;
+  --cg-card-shadow: 0 12px 40px rgba(15, 31, 28, 0.08), 0 2px 8px rgba(15, 31, 28, 0.04);
+  --cg-glow: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(13, 122, 111, 0.12), transparent 70%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +47,61 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+/* CallGuard scoped motion — respect reduced motion */
+@keyframes cg-pulse-soft {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(21, 128, 61, 0);
+  }
+}
+
+@keyframes cg-warning-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cg-shield-nudge {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  60% {
+    transform: scale(0.98);
+  }
+}
+
+.cg-call-pulse {
+  animation: cg-pulse-soft 2.8s ease-in-out infinite;
+}
+
+.cg-warning-enter {
+  animation: cg-warning-in 0.45s ease-out both;
+}
+
+.cg-shield-animate {
+  animation: cg-shield-nudge 0.7s ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cg-call-pulse,
+  .cg-warning-enter,
+  .cg-shield-animate {
+    animation: none;
   }
 }
 
