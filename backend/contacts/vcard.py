@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.contacts.constants import SENIOR_ERRORS
@@ -151,7 +152,28 @@ async def import_vcard_contacts(
 
     now = datetime.now(timezone.utc)
     created = 0
+    skipped = 0
+
+    # Avoid re-importing the same phone numbers for this user.
+    existing_result = await db.execute(
+        select(UserContact).where(
+            UserContact.user_id == user_id,
+            UserContact.merged_into_contact_id.is_(None),
+        )
+    )
+    existing_phones = set()
+    for contact in existing_result.scalars().all():
+        if contact.normalized_phone:
+            existing_phones.add(contact.normalized_phone)
+        for extra in contact.additional_phone_numbers or []:
+            if isinstance(extra, dict) and extra.get("normalized"):
+                existing_phones.add(extra["normalized"])
+
     for item in preview:
+        normalized = item.get("normalized_phone")
+        if normalized and normalized in existing_phones:
+            skipped += 1
+            continue
         contact = UserContact(
             id=uuid4(),
             user_id=user_id,
@@ -167,12 +189,21 @@ async def import_vcard_contacts(
             last_synced_at=now,
         )
         db.add(contact)
+        if normalized:
+            existing_phones.add(normalized)
         created += 1
 
     await db.commit()
-    logger.info("vcard_imported user_id=%s created=%s", user_id, created)
+    from backend.contacts.duplicates import refresh_duplicate_suggestions
+
+    duplicates_found = await refresh_duplicate_suggestions(db, user_id)
+    logger.info(
+        "vcard_imported user_id=%s created=%s skipped=%s", user_id, created, skipped
+    )
     return {
         "preview": False,
         "imported": created,
+        "skipped_duplicates": skipped,
         "with_phone": sum(1 for c in preview if c["has_phone"]),
+        "duplicates_found": duplicates_found,
     }

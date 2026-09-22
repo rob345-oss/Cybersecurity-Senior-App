@@ -20,8 +20,8 @@ from backend.contacts.google_oauth import (
     list_people_connections,
     mark_needs_reconnect,
 )
-from backend.contacts.phone import normalize_phone, normalize_phone_list
-from backend.database.models import GoogleContactsConnection, UserContact
+from backend.contacts.phone import normalize_phone
+from backend.database.models import GoogleContactsConnection, TrustedCaller, UserContact
 from backend.utils import sanitize_input
 
 logger = logging.getLogger(__name__)
@@ -57,10 +57,14 @@ def parse_person(person: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     last_name = sanitize_input(name.get("familyName") or "", max_length=256) or None
 
     phones_raw: List[str] = []
+    primary_raw: Optional[str] = None
     for phone in person.get("phoneNumbers") or []:
         value = phone.get("value") or phone.get("canonicalForm")
-        if value:
-            phones_raw.append(value)
+        if not value:
+            continue
+        phones_raw.append(value)
+        if primary_raw is None and phone.get("metadata", {}).get("primary"):
+            primary_raw = value
 
     emails = person.get("emailAddresses") or []
     primary_email = next((e for e in emails if e.get("metadata", {}).get("primary")), None)
@@ -76,14 +80,25 @@ def parse_person(person: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not google_id:
         return None
 
-    normalized_list = normalize_phone_list(phones_raw)
-    primary_display = phones_raw[0] if phones_raw else None
-    primary_normalized = normalized_list[0] if normalized_list else None
+    # Pair each raw value with its own normalization so invalid entries cannot
+    # shift later numbers onto the wrong raw string.
+    phone_pairs: List[Dict[str, str]] = []
+    seen_norms: Set[str] = set()
+    ordered_raw = []
+    if primary_raw:
+        ordered_raw.append(primary_raw)
+    for raw in phones_raw:
+        if raw not in ordered_raw:
+            ordered_raw.append(raw)
+    for raw in ordered_raw:
+        normalized = normalize_phone(raw)
+        if not normalized or normalized in seen_norms:
+            continue
+        seen_norms.add(normalized)
+        phone_pairs.append({"raw": raw, "normalized": normalized})
 
-    additional = [
-        {"raw": phones_raw[i] if i < len(phones_raw) else n, "normalized": n}
-        for i, n in enumerate(normalized_list)
-    ]
+    primary_display = phone_pairs[0]["raw"] if phone_pairs else None
+    primary_normalized = phone_pairs[0]["normalized"] if phone_pairs else None
 
     return {
         "google_contact_id": google_id,
@@ -92,7 +107,7 @@ def parse_person(person: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "last_name": last_name,
         "primary_phone": primary_display,
         "normalized_phone": primary_normalized,
-        "additional_phone_numbers": additional,
+        "additional_phone_numbers": phone_pairs,
         "email": email,
         "photo_url": photo_url,
     }
@@ -121,13 +136,34 @@ async def sync_google_contacts(db: AsyncSession, user_id: UUID) -> Dict[str, Any
     result = await db.execute(
         select(UserContact).where(
             UserContact.user_id == user_id,
-            UserContact.source == "google",
-            UserContact.merged_into_contact_id.is_(None),
+            UserContact.google_contact_id.is_not(None),
         )
     )
+    all_with_google = list(result.scalars().all())
+    contacts_by_id: Dict[UUID, UserContact] = {c.id: c for c in all_with_google}
     existing_by_google: Dict[str, UserContact] = {
-        c.google_contact_id: c for c in result.scalars().all() if c.google_contact_id
+        c.google_contact_id: c for c in all_with_google if c.google_contact_id
     }
+
+    async def _sync_trusted_phones(contact: UserContact) -> None:
+        if not contact.is_trusted or not contact.normalized_phone:
+            return
+        tc_result = await db.execute(
+            select(TrustedCaller).where(
+                TrustedCaller.user_id == user_id,
+                TrustedCaller.contact_id == contact.id,
+                TrustedCaller.trust_status == "active",
+            )
+        )
+        for tc in tc_result.scalars().all():
+            # Keep the trusted row aligned with the contact's current primary number.
+            contact_numbers = {contact.normalized_phone}
+            for extra in contact.additional_phone_numbers or []:
+                if isinstance(extra, dict) and extra.get("normalized"):
+                    contact_numbers.add(extra["normalized"])
+            if tc.normalized_phone not in contact_numbers:
+                tc.normalized_phone = contact.normalized_phone
+                tc.updated_at = now
 
     for person in people:
         parsed = parse_person(person)
@@ -138,6 +174,10 @@ async def sync_google_contacts(db: AsyncSession, user_id: UUID) -> Dict[str, Any
 
         existing = existing_by_google.get(google_id)
         if existing:
+            if existing.merged_into_contact_id is not None:
+                # User already merged this Google contact away — do not recreate it
+                # (would violate UNIQUE(user_id, google_contact_id) and undo the merge).
+                continue
             existing.display_name = parsed["display_name"]
             existing.first_name = parsed["first_name"]
             existing.last_name = parsed["last_name"]
@@ -149,6 +189,7 @@ async def sync_google_contacts(db: AsyncSession, user_id: UUID) -> Dict[str, Any
             existing.source_contact_deleted = False
             existing.last_synced_at = now
             existing.updated_at = now
+            await _sync_trusted_phones(existing)
             updated += 1
         else:
             contact = UserContact(
@@ -169,10 +210,16 @@ async def sync_google_contacts(db: AsyncSession, user_id: UUID) -> Dict[str, Any
                 last_synced_at=now,
             )
             db.add(contact)
+            contacts_by_id[contact.id] = contact
+            existing_by_google[google_id] = contact
             created += 1
 
     deleted_flagged = 0
     for google_id, contact in existing_by_google.items():
+        if contact.merged_into_contact_id is not None:
+            continue
+        if contact.source != "google":
+            continue
         if google_id not in seen_google_ids and not contact.source_contact_deleted:
             contact.source_contact_deleted = True
             contact.updated_at = now

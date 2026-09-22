@@ -10,15 +10,24 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.contacts.constants import RELATIONSHIP_CATEGORIES, SENIOR_ERRORS
-from backend.contacts.phone import normalize_phone, normalize_phone_list
+from backend.contacts.phone import normalize_phone
 from backend.database.models import TrustedCaller, UserContact
 from backend.utils import sanitize_input
 
 logger = logging.getLogger(__name__)
+
+
+def _contact_has_normalized_phone(contact: UserContact, normalized: str) -> bool:
+    if contact.normalized_phone == normalized:
+        return True
+    for extra in contact.additional_phone_numbers or []:
+        if isinstance(extra, dict) and extra.get("normalized") == normalized:
+            return True
+    return False
 
 
 class TrustedCallerService:
@@ -52,49 +61,50 @@ class TrustedCallerService:
         )
         row = result.first()
 
-        if not row:
-            # Also check additional numbers on trusted contacts
-            contacts_result = await self.db.execute(
-                select(UserContact).where(
-                    UserContact.user_id == user_id,
-                    UserContact.is_trusted.is_(True),
-                    UserContact.merged_into_contact_id.is_(None),
-                )
-            )
-            for contact in contacts_result.scalars().all():
-                numbers = set()
-                if contact.normalized_phone:
-                    numbers.add(contact.normalized_phone)
-                for extra in contact.additional_phone_numbers or []:
-                    if isinstance(extra, dict) and extra.get("normalized"):
-                        numbers.add(extra["normalized"])
-                if normalized in numbers:
-                    return {
-                        "trusted": True,
-                        "contact_id": str(contact.id),
-                        "name": contact.display_name,
-                        "relationship": contact.relationship,
-                        "source": contact.source,
-                        "normalized_phone": normalized,
-                    }
-            return {
-                "trusted": False,
-                "contact_id": None,
-                "name": None,
-                "relationship": None,
-                "source": None,
-                "normalized_phone": normalized,
-            }
+        if row:
+            tc, contact = row
+            # Reject stale TrustedCaller rows whose phone is no longer on the contact
+            # (e.g. Google number changed and the old number was recycled).
+            if (
+                contact.merged_into_contact_id is None
+                and _contact_has_normalized_phone(contact, normalized)
+            ):
+                return {
+                    "trusted": True,
+                    "contact_id": str(contact.id),
+                    "name": contact.display_name,
+                    "relationship": tc.relationship or contact.relationship,
+                    "source": contact.source,
+                    "normalized_phone": normalized,
+                    "trusted_caller_id": str(tc.id),
+                }
 
-        tc, contact = row
+        # Also check current numbers on trusted contacts (covers additional numbers
+        # and TrustedCaller rows that still point at a previous primary).
+        contacts_result = await self.db.execute(
+            select(UserContact).where(
+                UserContact.user_id == user_id,
+                UserContact.is_trusted.is_(True),
+                UserContact.merged_into_contact_id.is_(None),
+            )
+        )
+        for contact in contacts_result.scalars().all():
+            if _contact_has_normalized_phone(contact, normalized):
+                return {
+                    "trusted": True,
+                    "contact_id": str(contact.id),
+                    "name": contact.display_name,
+                    "relationship": contact.relationship,
+                    "source": contact.source,
+                    "normalized_phone": normalized,
+                }
         return {
-            "trusted": True,
-            "contact_id": str(contact.id),
-            "name": contact.display_name,
-            "relationship": tc.relationship or contact.relationship,
-            "source": contact.source,
+            "trusted": False,
+            "contact_id": None,
+            "name": None,
+            "relationship": None,
+            "source": None,
             "normalized_phone": normalized,
-            "trusted_caller_id": str(tc.id),
         }
 
     async def add_trust(
@@ -121,15 +131,24 @@ class TrustedCallerService:
                 # Allow custom but prefer known categories
                 pass
 
-        # Reactivate existing or create
+        # Reactivate existing or create. Prefer an active row; collapse duplicates
+        # left behind by merges so scalar_one_or_none cannot raise.
         existing = await self.db.execute(
             select(TrustedCaller).where(
                 TrustedCaller.user_id == user_id,
                 TrustedCaller.contact_id == contact.id,
             )
         )
-        tc = existing.scalar_one_or_none()
+        rows = list(existing.scalars().all())
         now = datetime.now(timezone.utc)
+        tc = next((r for r in rows if r.trust_status == "active"), None)
+        if tc is None and rows:
+            tc = rows[0]
+        for extra in rows:
+            if tc is not None and extra.id != tc.id and extra.trust_status == "active":
+                extra.trust_status = "removed"
+                extra.updated_at = now
+
         if tc:
             tc.trust_status = "active"
             tc.normalized_phone = contact.normalized_phone
