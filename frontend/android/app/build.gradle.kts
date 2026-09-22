@@ -22,7 +22,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Align with pubspec.yaml version: 1.0.0+1
+        // Pubspec version: 1.0.0+1
         versionCode = 1
         versionName = "1.0.0"
     }

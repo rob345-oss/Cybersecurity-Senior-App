@@ -11,6 +11,7 @@ Titanium Guardian is committed to protecting your privacy and the security of yo
 ### Personal Information
 - **User Identifiers**: Unique user IDs and device IDs associated with your sessions
 - **Contact Information**: Email addresses and phone numbers (when provided for IdentityWatch assessments)
+- **Google Contacts (optional)**: If you choose to connect Google Contacts, we retrieve contact names, phone numbers, email addresses, and photos solely to let you select Trusted Callers and to recognize those numbers during CallGuard
 - **Session Data**: Risk assessment events, timestamps, and risk scores
 
 ### Technical Information
@@ -33,9 +34,18 @@ We may process sensitive personal information including:
 We use the information we collect to:
 
 1. **Provide Risk Assessment Services**: Analyze potential security threats, phishing attempts, and fraud risks
-2. **Improve Our Services**: Enhance our risk detection algorithms and assessment accuracy
-3. **Session Management**: Track and manage active risk assessment sessions
-4. **Security and Compliance**: Ensure the security of our systems and comply with legal obligations
+2. **Trusted Callers**: Recognize phone numbers you have explicitly marked as trusted (imported contacts are never trusted automatically)
+3. **Improve Our Services**: Enhance our risk detection algorithms and assessment accuracy
+4. **Session Management**: Track and manage active risk assessment sessions
+5. **Security and Compliance**: Ensure the security of our systems and comply with legal obligations
+
+### Google Contacts Connection
+- We use Google’s Contacts (People) API with read-only permission after you authorize Titanium Guardian
+- OAuth access and refresh tokens are encrypted at rest on our servers and are never sent to your browser
+- You may disconnect Google Contacts or delete imported contact data at any time from the Contacts & Trusted Callers page
+- Disconnecting Google does not automatically remove Trusted Caller protection unless you choose to delete that data
+- We do not write back to your Google Contacts in the current version
+- We do not claim access to Apple/iCloud Contacts; iPhone display of Google contacts uses Apple’s own account settings
 
 ## Data Storage and Security
 
@@ -48,6 +58,7 @@ We use the information we collect to:
   - Phone numbers
   - Account numbers
   - Social Security Numbers (if provided)
+  - Google OAuth tokens for Contacts access
   - Other sensitive identifiers
 
 ### Storage Duration

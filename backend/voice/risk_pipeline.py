@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from backend.models import EventIn, RiskResponse
 from backend.risk_engine import callguard
@@ -17,6 +18,34 @@ logger = logging.getLogger(__name__)
 def _get_memory_store():
     from backend.main import store
     return store
+
+
+async def _lookup_trusted_caller(record: CallRecord) -> Dict[str, Any]:
+    """Resolve trusted-caller metadata from the local database (no Google API)."""
+    phone = record.from_number or record.to_number
+    empty = {
+        "trusted": False,
+        "contact_id": None,
+        "name": None,
+        "relationship": None,
+        "source": None,
+    }
+    if not phone or not record.user_id:
+        return empty
+    try:
+        user_id = UUID(str(record.user_id))
+    except ValueError:
+        return empty
+
+    try:
+        from backend.database.connection import AsyncSessionLocal
+        from backend.contacts.trusted_service import is_trusted_caller
+
+        async with AsyncSessionLocal() as db:
+            return await is_trusted_caller(db, user_id, phone)
+    except Exception as exc:
+        logger.warning("trusted_caller_lookup_failed: %s", exc)
+        return empty
 
 
 async def process_transcript_chunk(
@@ -68,11 +97,16 @@ async def process_transcript_chunk(
                     ),
                 )
 
+    trusted = await _lookup_trusted_caller(record)
     call_context: Dict[str, Any] = {
         "transcript": full_text,
         "caller_id": record.from_number or record.to_number,
         "call_direction": record.direction,
+        "trusted_caller": trusted,
     }
+    if trusted.get("trusted") and trusted.get("name"):
+        call_context["caller_name"] = trusted["name"]
+
     risk = callguard.assess(all_signals, call_context=call_context)
     if session:
         store.update_last_risk(record.session_id, risk)
@@ -88,6 +122,7 @@ async def process_transcript_chunk(
             "detected_signals": transcript_signals,
             "session_id": record.session_id,
             "call_sid": record.call_sid,
+            "trusted_caller": trusted,
         },
     )
     return risk
@@ -100,11 +135,16 @@ async def reassess_active_call(record: CallRecord) -> Optional[RiskResponse]:
     manual = list(record.manual_signals)
     all_signals = merge_signals(transcript_signals, manual)
 
+    trusted = await _lookup_trusted_caller(record)
     call_context: Dict[str, Any] = {
         "transcript": full_text,
         "caller_id": record.from_number or record.to_number,
         "call_direction": record.direction,
+        "trusted_caller": trusted,
     }
+    if trusted.get("trusted") and trusted.get("name"):
+        call_context["caller_name"] = trusted["name"]
+
     risk = callguard.assess(all_signals, call_context=call_context)
     store = _get_memory_store()
     if store.get_session(record.session_id):
@@ -121,6 +161,7 @@ async def reassess_active_call(record: CallRecord) -> Optional[RiskResponse]:
             "detected_signals": transcript_signals,
             "session_id": record.session_id,
             "call_sid": record.call_sid,
+            "trusted_caller": trusted,
         },
     )
     return risk

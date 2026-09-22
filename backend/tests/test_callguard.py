@@ -387,7 +387,7 @@ class TestIntegrationScenarios:
         assert response.level in ["medium", "high"]
         assert response.safe_script is not None
         script = response.safe_script.say_this.lower()
-        assert "verification" in script or "code" in script or "bank" in script
+        assert "bank" in script or "verification" in script or "code" in script
     
     def test_tech_support_scam_scenario(self):
         """Test a typical tech support scam."""

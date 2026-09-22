@@ -42,6 +42,7 @@ from backend.auth.dependencies import get_current_user
 from backend.voice.router import router as voice_router
 from backend.care_circle.router import router as care_circle_router
 from backend.voice.transcript_signals import detect_signals, merge_signals
+from backend.contacts.router import router as contacts_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -132,6 +133,7 @@ store = MemoryStore()
 set_limiter(limiter)
 app.include_router(auth_router)
 app.include_router(voice_router)
+app.include_router(contacts_router)
 app.include_router(care_circle_router)
 
 
