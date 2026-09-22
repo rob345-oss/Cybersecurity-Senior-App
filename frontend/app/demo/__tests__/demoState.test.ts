@@ -30,6 +30,12 @@ describe('demoReducer', () => {
     expect(state.stage).toBe('suspicious')
     expect(state.riskLevel).toBe('suspicious')
 
+    // Early transcript lines must not lower an escalated risk level
+    state = demoReducer(state, { type: 'REVEAL_TRANSCRIPT_LINE', index: 0 })
+    expect(state.riskLevel).toBe('suspicious')
+    state = demoReducer(state, { type: 'REVEAL_TRANSCRIPT_LINE', index: 1 })
+    expect(state.riskLevel).toBe('suspicious')
+
     const highIndex = TRANSCRIPT_LINES.findIndex((l) => l.riskAfter === 'high')
     state = demoReducer(state, { type: 'REVEAL_TRANSCRIPT_LINE', index: highIndex })
     expect(state.riskLevel).toBe('high')

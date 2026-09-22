@@ -98,6 +98,18 @@ function riskAnnouncement(level: RiskLevel): string {
   return 'Risk level: low.'
 }
 
+const RISK_ORDER: Record<RiskLevel, number> = {
+  low: 0,
+  suspicious: 1,
+  high: 2,
+}
+
+/** Risk only escalates during the call scenario (Mark as Safe can lower it). */
+function escalateRisk(current: RiskLevel, next?: RiskLevel): RiskLevel {
+  if (!next) return current
+  return RISK_ORDER[next] > RISK_ORDER[current] ? next : current
+}
+
 export function demoReducer(state: DemoState, action: DemoAction): DemoState {
   switch (action.type) {
     case 'START_DEMO':
@@ -132,13 +144,14 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return { ...state, showTranscript: !state.showTranscript }
     case 'SET_SCREENING_STEP': {
       const atEnd = action.index >= 4
+      const riskLevel = atEnd ? escalateRisk(state.riskLevel, 'suspicious') : state.riskLevel
       return {
         ...state,
         screeningStepIndex: action.index,
         stage: atEnd ? 'suspicious' : 'screening',
-        riskLevel: atEnd ? 'suspicious' : state.riskLevel,
+        riskLevel,
         announcement: atEnd
-          ? riskAnnouncement('suspicious')
+          ? riskAnnouncement(riskLevel)
           : `Screening step ${action.index + 1}.`,
         transcriptIndex: atEnd && state.transcriptIndex < 0 ? 0 : state.transcriptIndex,
       }
@@ -146,8 +159,10 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
     case 'REVEAL_TRANSCRIPT_LINE': {
       const line = TRANSCRIPT_LINES[action.index]
       if (!line) return state
-      const riskLevel = line.riskAfter ?? state.riskLevel
+      const riskLevel = escalateRisk(state.riskLevel, line.riskAfter)
       const isHigh = riskLevel === 'high'
+      const becameSuspicious =
+        riskLevel === 'suspicious' && state.riskLevel !== 'suspicious' && !isHigh
       return {
         ...state,
         transcriptIndex: action.index,
@@ -155,8 +170,8 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
         stage: isHigh ? 'highRisk' : riskLevel === 'suspicious' ? 'suspicious' : state.stage,
         announcement: isHigh
           ? riskAnnouncement('high')
-          : riskLevel !== state.riskLevel
-            ? riskAnnouncement(riskLevel)
+          : becameSuspicious
+            ? riskAnnouncement('suspicious')
             : state.announcement,
       }
     }
