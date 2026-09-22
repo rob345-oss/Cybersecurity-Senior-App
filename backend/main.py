@@ -40,6 +40,7 @@ from backend.database.models import User
 from backend.auth.router import router as auth_router, set_limiter
 from backend.auth.dependencies import get_current_user
 from backend.voice.router import router as voice_router
+from backend.care_circle.router import router as care_circle_router
 from backend.voice.transcript_signals import detect_signals, merge_signals
 from backend.contacts.router import router as contacts_router
 
@@ -120,7 +121,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True if "*" not in allowed_origins else False,
-    allow_methods=["GET", "POST", "OPTIONS", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -133,6 +134,7 @@ set_limiter(limiter)
 app.include_router(auth_router)
 app.include_router(voice_router)
 app.include_router(contacts_router)
+app.include_router(care_circle_router)
 
 
 class MoneyGuardAssessRequest(BaseModel):

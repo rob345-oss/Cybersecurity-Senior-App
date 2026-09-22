@@ -31,9 +31,15 @@ class User(Base):
     email_encrypted = Column(String(512), unique=True, nullable=False, index=True)
     full_name_encrypted = Column(String(512), nullable=True)
     phone_encrypted = Column(String(512), nullable=True)
+    protected_phone_encrypted = Column(String(512), nullable=True)
 
     password_hash = Column(String(255), nullable=False)
     email_verified = Column(Boolean, default=False, nullable=False)
+
+    # Protected number and share onboarding (CareCircle)
+    protected_number_activated_at = Column(DateTime(timezone=True), nullable=True)
+    share_onboarding_completed_at = Column(DateTime(timezone=True), nullable=True)
+    share_onboarding_deferred_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(
         DateTime(timezone=True),
@@ -61,6 +67,12 @@ class User(Base):
     )
     trusted_callers = sa_relationship(
         "TrustedCaller", back_populates="user", cascade="all, delete-orphan"
+    )
+    trusted_contacts = sa_relationship(
+        "TrustedContact", back_populates="user", cascade="all, delete-orphan"
+    )
+    contact_share_events = sa_relationship(
+        "ContactShareEvent", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
@@ -313,3 +325,97 @@ class OAuthState(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+
+class TrustedContact(Base):
+    """Trusted contact for CareCircle / share onboarding.
+
+    Separate from UserContact/TrustedCaller (Google Contacts sync). CareCircle
+    may later migrate to reference user_contacts.id; keep concepts distinct for now.
+    """
+
+    __tablename__ = "trusted_contacts"
+
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    first_name_encrypted = Column(String(512), nullable=False)
+    phone_encrypted = Column(String(512), nullable=False)
+    relationship_encrypted = Column(String(512), nullable=True)
+    is_selected = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    user = sa_relationship("User", back_populates="trusted_contacts")
+    share_event = sa_relationship(
+        "ContactShareEvent",
+        back_populates="trusted_contact",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<TrustedContact(id={self.id}, user_id={self.user_id})>"
+
+
+class ContactShareEvent(Base):
+    """Per-contact share onboarding state."""
+
+    __tablename__ = "contact_share_events"
+    __table_args__ = (
+        UniqueConstraint(
+            "trusted_contact_id", name="uq_contact_share_events_trusted_contact"
+        ),
+    )
+
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    trusted_contact_id = Column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("trusted_contacts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    message_template = Column(String(32), nullable=False, default="default")
+    custom_message_encrypted = Column(String(2048), nullable=True)
+    sharing_status = Column(String(32), nullable=False, default="not_started")
+    last_share_action_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    user = sa_relationship("User", back_populates="contact_share_events")
+    trusted_contact = sa_relationship("TrustedContact", back_populates="share_event")
+
+    def __repr__(self) -> str:
+        return f"<ContactShareEvent(id={self.id}, status={self.sharing_status})>"
+

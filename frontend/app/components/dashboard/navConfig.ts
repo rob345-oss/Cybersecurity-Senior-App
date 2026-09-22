@@ -6,6 +6,7 @@ import {
   Mail,
   Phone,
   User,
+  Users,
 } from 'lucide-react'
 
 export interface DashboardNavItem {
@@ -47,6 +48,12 @@ export const dashboardNavItems: DashboardNavItem[] = [
     icon: User,
     description: 'Monitor identity signals and escalation steps',
   },
+  {
+    href: '/dashboard/share-number',
+    label: 'CareCircle',
+    icon: Users,
+    description: 'Share your protected number with trusted contacts',
+  },
 ]
 
 export const modulePageMeta: Record<
@@ -79,5 +86,9 @@ export const modulePageMeta: Record<
     title: 'IdentityWatch',
     description: 'Monitor identity signals and escalation steps',
     comingSoon: true,
+  },
+  '/dashboard/share-number': {
+    title: 'CareCircle',
+    description: 'Share your protected number with trusted contacts',
   },
 }

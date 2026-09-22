@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/risk_response.dart';
 import '../services/api_service.dart';
-import 'dart:convert';
 
 class CallGuardScreen extends StatefulWidget {
   const CallGuardScreen({super.key});

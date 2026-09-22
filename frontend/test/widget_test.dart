@@ -14,5 +14,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.byType(CybersecuritySeniorApp), findsOneWidget);
+    expect(find.text('CallGuard'), findsOneWidget);
   });
 }
