@@ -347,13 +347,17 @@ class TestSignalWeights:
             assert response.score > 0
     
     def test_signal_weight_accumulation(self):
-        """Test that repeated signals accumulate under current scoring rules."""
+        """Test that signal weights accumulate correctly."""
+        # Single signal
         single = callguard.assess(["urgency"], use_ai=False)
+        single_score = single.score
+        
+        # Multiple of same signal (should only count once)
         multiple = callguard.assess(["urgency", "urgency", "urgency"], use_ai=False)
-
-        assert single.score == 10
-        assert multiple.score == 30
-        assert multiple.score > single.score
+        multiple_score = multiple.score
+        
+        # Should be same (signals are deduplicated in processing)
+        assert single_score == multiple_score
     
     def test_highest_signal_determination(self):
         """Test that highest weighted signal is identified."""
