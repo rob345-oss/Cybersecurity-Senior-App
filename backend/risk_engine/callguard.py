@@ -179,6 +179,10 @@ SAFE_SCRIPTS: Dict[str, SafeScript] = {
         say_this="I don't grant remote access. I'll contact support using the official site.",
         if_they_push_back="No remote access. I'm ending the call now.",
     ),
+    "remote_access_request": SafeScript(
+        say_this="I don't grant remote access. I'll contact support using the official site.",
+        if_they_push_back="No remote access. I'm ending the call now.",
+    ),
     "verification_code_request": SafeScript(
         say_this="I never share verification codes.",
         if_they_push_back="Without that, I can't proceed. Goodbye.",
@@ -1065,8 +1069,18 @@ def assess(
     if not signals:
         signals = []
     else:
-        # Filter out invalid signals
-        signals = [s for s in signals if isinstance(s, str) and s.strip()]
+        # Filter invalid entries and deduplicate while preserving order
+        seen = set()
+        cleaned: List[str] = []
+        for s in signals:
+            if not isinstance(s, str):
+                continue
+            key = s.strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(key)
+        signals = cleaned
     
     result: Optional[RiskResponse] = None
 

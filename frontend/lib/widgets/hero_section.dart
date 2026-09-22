@@ -30,8 +30,7 @@ class HeroSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Semantics(
-                heading: true,
-                level: 1,
+                header: true,
                 child: Text(
                   'Cybersecurity operations built for relentless resilience.',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -118,8 +117,7 @@ class HeroSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Semantics(
-                  heading: true,
-                  level: 2,
+                  header: true,
                   child: Text(
                     'Live Security Posture',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -242,7 +240,7 @@ class _StatusRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '$label: $value, $_colorDescription() status',
+      label: '$label: $value, ${_getColorDescription()} status',
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
