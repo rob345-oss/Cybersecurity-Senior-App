@@ -80,7 +80,10 @@ async def consume_oauth_state(db: AsyncSession, state: str) -> Optional[UUID]:
     now = datetime.now(timezone.utc)
     if row.used_at is not None:
         return None
-    if row.expires_at.replace(tzinfo=timezone.utc) if row.expires_at.tzinfo is None else row.expires_at < now:
+    expires = row.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires < now:
         return None
     row.used_at = now
     await db.commit()

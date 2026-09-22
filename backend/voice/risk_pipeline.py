@@ -20,9 +20,21 @@ def _get_memory_store():
     return store
 
 
+def _peer_phone_for_trust(record: CallRecord) -> str:
+    """Phone to match against Trusted Callers.
+
+    Inbound: the remote caller is ``from_number``.
+    Outbound: the remote callee is ``to_number`` (``from_number`` is our Twilio line).
+    """
+    direction = (record.direction or "").lower()
+    if direction == "outbound":
+        return record.to_number or record.from_number or ""
+    return record.from_number or record.to_number or ""
+
+
 async def _lookup_trusted_caller(record: CallRecord) -> Dict[str, Any]:
     """Resolve trusted-caller metadata from the local database (no Google API)."""
-    phone = record.from_number or record.to_number
+    phone = _peer_phone_for_trust(record)
     empty = {
         "trusted": False,
         "contact_id": None,
@@ -98,9 +110,10 @@ async def process_transcript_chunk(
                 )
 
     trusted = await _lookup_trusted_caller(record)
+    peer_phone = _peer_phone_for_trust(record)
     call_context: Dict[str, Any] = {
         "transcript": full_text,
-        "caller_id": record.from_number or record.to_number,
+        "caller_id": peer_phone,
         "call_direction": record.direction,
         "trusted_caller": trusted,
     }
@@ -136,9 +149,10 @@ async def reassess_active_call(record: CallRecord) -> Optional[RiskResponse]:
     all_signals = merge_signals(transcript_signals, manual)
 
     trusted = await _lookup_trusted_caller(record)
+    peer_phone = _peer_phone_for_trust(record)
     call_context: Dict[str, Any] = {
         "transcript": full_text,
-        "caller_id": record.from_number or record.to_number,
+        "caller_id": peer_phone,
         "call_direction": record.direction,
         "trusted_caller": trusted,
     }

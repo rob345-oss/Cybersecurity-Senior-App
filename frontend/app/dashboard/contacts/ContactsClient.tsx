@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Check,
   ChevronRight,
@@ -38,8 +38,37 @@ import {
 
 type Toast = { type: 'success' | 'error' | 'info'; message: string } | null
 
+async function listAllContacts(params: {
+  q?: string
+  relationship?: string
+}): Promise<{ contacts: Contact[]; total: number; trusted_count: number }> {
+  const pageSize = 100
+  let page = 1
+  let total = 0
+  let trusted_count = 0
+  const contacts: Contact[] = []
+  while (true) {
+    const list = await listContacts({
+      ...params,
+      page,
+      page_size: pageSize,
+    })
+    total = list.total
+    trusted_count = list.trusted_count
+    contacts.push(...list.contacts)
+    if (contacts.length >= list.total || list.contacts.length === 0) {
+      break
+    }
+    page += 1
+    // Safety cap to avoid runaway loops on a bad API response.
+    if (page > 50) break
+  }
+  return { contacts, total, trusted_count }
+}
+
 export default function ContactsPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [status, setStatus] = useState<ContactsStatus | null>(null)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [total, setTotal] = useState(0)
@@ -48,6 +77,7 @@ export default function ContactsPage() {
   const [relationshipFilter, setRelationshipFilter] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<Toast>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -69,28 +99,44 @@ export default function ContactsPage() {
   })
   const [vcardPreview, setVcardPreview] = useState<Record<string, unknown> | null>(null)
   const [vcardFile, setVcardFile] = useState<File | null>(null)
+  const toastTimerRef = useRef<number | null>(null)
+  const refreshRequestRef = useRef(0)
+  const oauthHandledRef = useRef(false)
 
   const showMessage = useCallback((type: Toast extends null ? never : NonNullable<Toast>['type'], message: string) => {
     setToast({ type, message })
-    window.setTimeout(() => setToast(null), 5000)
+    if (toastTimerRef.current != null) {
+      window.clearTimeout(toastTimerRef.current)
+    }
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 5000)
   }, [])
 
   const refresh = useCallback(async () => {
+    const requestId = ++refreshRequestRef.current
     try {
       const [st, list, dups] = await Promise.all([
         getContactsStatus(),
-        listContacts({
+        listAllContacts({
           q: query || undefined,
           relationship: relationshipFilter || undefined,
-          page_size: 100,
         }),
         listDuplicates().catch(() => ({ duplicates: [] as DuplicatePair[], message: '' })),
       ])
+      if (requestId !== refreshRequestRef.current) {
+        return
+      }
+      setLoadError(false)
       setStatus(st)
       setContacts(list.contacts)
       setTotal(list.total)
       setTrustedCount(list.trusted_count)
       setDuplicates(dups.duplicates || [])
+      setSelected((prev) => {
+        if (prev.size === 0) return prev
+        const visible = new Set(list.contacts.map((c) => c.id))
+        const next = new Set(Array.from(prev).filter((id) => visible.has(id)))
+        return next.size === prev.size ? prev : next
+      })
       if (!st.connected && st.trusted_count === 0 && list.total === 0) {
         const seen = typeof window !== 'undefined' && sessionStorage.getItem('tg_contacts_onboarded')
         if (!seen || searchParams.get('onboarding') === '1') {
@@ -98,9 +144,15 @@ export default function ContactsPage() {
         }
       }
     } catch (err) {
+      if (requestId !== refreshRequestRef.current) {
+        return
+      }
+      setLoadError(true)
       showMessage('error', err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
-      setLoading(false)
+      if (requestId === refreshRequestRef.current) {
+        setLoading(false)
+      }
     }
   }, [query, relationshipFilter, searchParams, showMessage])
 
@@ -109,24 +161,39 @@ export default function ContactsPage() {
   }, [refresh])
 
   useEffect(() => {
-    if (searchParams.get('connected') === '1') {
+    setSelected(new Set())
+  }, [query, relationshipFilter])
+
+  useEffect(() => {
+    if (oauthHandledRef.current) return
+    const connectedParam = searchParams.get('connected')
+    const errorParam = searchParams.get('error')
+    const syncWarning = searchParams.get('sync_warning')
+    if (connectedParam !== '1' && errorParam !== '1' && syncWarning !== '1') {
+      return
+    }
+    oauthHandledRef.current = true
+    if (connectedParam === '1') {
       showMessage('success', 'Your Google Contacts are connected.')
+      setShowOnboarding(true)
+      setOnboardingStep(3)
       void refresh()
     }
-    if (searchParams.get('error') === '1') {
+    if (errorParam === '1') {
+      // Do not echo arbitrary query text into the UI.
       showMessage(
         'error',
-        searchParams.get('message') ||
-          'We couldn’t connect Google Contacts. You can try again whenever you are ready.'
+        'We couldn’t connect Google Contacts. You can try again whenever you are ready.'
       )
     }
-    if (searchParams.get('sync_warning') === '1') {
+    if (syncWarning === '1') {
       showMessage(
         'info',
         'Your Google account is connected, but we couldn’t update contacts yet. Try “Sync Contacts”.'
       )
     }
-  }, [searchParams, showMessage, refresh])
+    router.replace('/dashboard/contacts')
+  }, [searchParams, showMessage, refresh, router])
 
   const connected = status?.connected === true
   const needsReconnect = status?.status === 'needs_reconnect'
@@ -148,6 +215,10 @@ export default function ContactsPage() {
       const result = await syncGoogleContacts()
       showMessage('success', result.message || 'Your contacts were updated.')
       await refresh()
+      if (showOnboarding || trustedCount === 0) {
+        setShowOnboarding(true)
+        setOnboardingStep(3)
+      }
     } catch (err) {
       showMessage('error', err instanceof Error ? err.message : 'Sync failed.')
     } finally {
@@ -170,6 +241,7 @@ export default function ContactsPage() {
   const toggleTrust = async (contact: Contact) => {
     setBusy(true)
     try {
+      const nextTrusted = !contact.is_trusted
       if (contact.is_trusted) {
         await untrustContact(contact.id)
         showMessage('success', `${contact.display_name} was removed from Trusted Callers.`)
@@ -179,6 +251,9 @@ export default function ContactsPage() {
         })
         showMessage('success', `${contact.display_name} is now a trusted caller.`)
       }
+      setDetail((prev) =>
+        prev && prev.id === contact.id ? { ...prev, is_trusted: nextTrusted } : prev
+      )
       await refresh()
     } catch (err) {
       showMessage('error', err instanceof Error ? err.message : 'Could not update trust.')
@@ -188,13 +263,33 @@ export default function ContactsPage() {
   }
 
   const handleBulkAdd = async () => {
+    const visibleIds = new Set(contacts.map((c) => c.id))
+    const ids = Array.from(selected).filter((id) => {
+      if (!visibleIds.has(id)) return false
+      const contact = contacts.find((c) => c.id === id)
+      return Boolean(contact?.normalized_phone)
+    })
+    if (ids.length === 0) {
+      showMessage('error', 'Select at least one contact that has a phone number.')
+      return
+    }
     setBusy(true)
     try {
       const result = await bulkTrust({
-        contact_ids: Array.from(selected),
+        contact_ids: ids,
         action: 'add',
       })
-      showMessage('success', result.message || `${result.count} trusted callers added.`)
+      const skipped = selected.size - result.count
+      if (result.count === 0) {
+        showMessage('error', 'No trusted callers were added. Contacts need a valid phone number.')
+      } else if (skipped > 0) {
+        showMessage(
+          'info',
+          `${result.count} trusted callers added. ${skipped} were skipped (missing phone or already trusted).`
+        )
+      } else {
+        showMessage('success', result.message || `${result.count} trusted callers added.`)
+      }
       setSelected(new Set())
       setShowBulkConfirm(false)
       await refresh()
@@ -209,9 +304,11 @@ export default function ContactsPage() {
   }
 
   const handleBulkRemove = async () => {
+    const visibleIds = new Set(contacts.map((c) => c.id))
+    const ids = Array.from(selected).filter((id) => visibleIds.has(id))
     if (
       !window.confirm(
-        `Remove ${selected.size} people from Trusted Callers? They will no longer be recognized as people you trust.`
+        `Remove ${ids.length} people from Trusted Callers? They will no longer be recognized as people you trust.`
       )
     ) {
       return
@@ -219,7 +316,7 @@ export default function ContactsPage() {
     setBusy(true)
     try {
       const result = await bulkTrust({
-        contact_ids: Array.from(selected),
+        contact_ids: ids,
         action: 'remove',
       })
       showMessage('success', result.message)
@@ -274,6 +371,8 @@ export default function ContactsPage() {
       setShowVcard(false)
       setVcardPreview(null)
       setVcardFile(null)
+      setShowOnboarding(true)
+      setOnboardingStep(3)
       await refresh()
     } catch (err) {
       showMessage('error', err instanceof Error ? err.message : 'Import failed.')
@@ -287,7 +386,7 @@ export default function ContactsPage() {
     setShowOnboarding(false)
   }
 
-  const emptyTrusted = trustedCount === 0 && !loading
+  const emptyTrusted = trustedCount === 0 && !loading && !loadError
 
   const statusItems = useMemo(
     () => [
@@ -350,6 +449,22 @@ export default function ContactsPage() {
           role="status"
         >
           {toast.message}
+        </div>
+      )}
+
+      {loadError && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-950">
+          We couldn’t load your contacts. Check your connection and try again.
+          <button
+            type="button"
+            className="ml-3 font-semibold underline"
+            onClick={() => {
+              setLoading(true)
+              void refresh()
+            }}
+          >
+            Retry
+          </button>
         </div>
       )}
 

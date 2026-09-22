@@ -326,9 +326,9 @@ async def delete_contact_data(
         if c.source == "manual" and c.is_trusted and not body.remove_trusted_callers:
             continue
         if c.is_trusted and not body.remove_trusted_callers:
-            # Keep trusted protection: convert to manual-like preserve
+            # Keep trusted protection as a local contact. Retain google_contact_id so
+            # the next Google sync updates this row instead of inserting a clone.
             c.source = "manual"
-            c.google_contact_id = None
             c.source_contact_deleted = False
             continue
         await db.delete(c)

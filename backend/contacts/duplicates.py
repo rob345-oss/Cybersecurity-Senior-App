@@ -112,13 +112,17 @@ async def refresh_duplicate_suggestions(db: AsyncSession, user_id: UUID) -> int:
 
     created = 0
     now = datetime.now(timezone.utc)
+    active_candidate_keys = set(candidates.keys())
     for (id_a, id_b), reason in candidates.items():
         key = (id_a, id_b)
         if key in existing:
             sug = existing[key]
             if sug.status == "dismissed":
                 continue
+            if sug.status == "merged":
+                continue
             sug.reason = reason
+            sug.status = "pending"
             sug.updated_at = now
             continue
         db.add(
@@ -133,8 +137,24 @@ async def refresh_duplicate_suggestions(db: AsyncSession, user_id: UUID) -> int:
         )
         created += 1
 
+    # Clear stale pending suggestions that are no longer duplicate candidates
+    # (including pairs that reference a contact already merged away).
+    for key, sug in existing.items():
+        if sug.status != "pending":
+            continue
+        if key in active_candidate_keys:
+            continue
+        sug.status = "dismissed"
+        sug.updated_at = now
+
     await db.commit()
-    return created
+    pending_count_result = await db.execute(
+        select(ContactDuplicateSuggestion).where(
+            ContactDuplicateSuggestion.user_id == user_id,
+            ContactDuplicateSuggestion.status == "pending",
+        )
+    )
+    return len(list(pending_count_result.scalars().all()))
 
 
 async def list_pending_duplicates(
@@ -259,8 +279,30 @@ async def merge_contacts(
     drop.updated_at = datetime.now(timezone.utc)
     keep.updated_at = datetime.now(timezone.utc)
 
-    # Move trusted_caller rows from drop to keep
+    # Preserve Google identity on the surviving contact so the next sync updates
+    # the keeper instead of inserting a duplicate that hits UNIQUE(user_id, google_contact_id).
+    if drop.google_contact_id:
+        if not keep.google_contact_id:
+            keep.google_contact_id = drop.google_contact_id
+            if keep.source == "manual":
+                keep.source = drop.source or keep.source
+        drop.google_contact_id = None
+
+    # Move trusted_caller rows from drop to keep, keeping a single active row.
     from backend.database.models import TrustedCaller
+
+    keep_tc_result = await db.execute(
+        select(TrustedCaller).where(
+            TrustedCaller.user_id == user_id,
+            TrustedCaller.contact_id == keep.id,
+            TrustedCaller.trust_status == "active",
+        )
+    )
+    keep_active = list(keep_tc_result.scalars().all())
+    primary_tc = keep_active[0] if keep_active else None
+    for extra in keep_active[1:]:
+        extra.trust_status = "removed"
+        extra.updated_at = datetime.now(timezone.utc)
 
     tc_result = await db.execute(
         select(TrustedCaller).where(
@@ -270,8 +312,20 @@ async def merge_contacts(
         )
     )
     for tc in tc_result.scalars().all():
-        tc.contact_id = keep.id
-        tc.updated_at = datetime.now(timezone.utc)
+        if primary_tc is None:
+            tc.contact_id = keep.id
+            if keep.normalized_phone:
+                tc.normalized_phone = keep.normalized_phone
+            tc.updated_at = datetime.now(timezone.utc)
+            primary_tc = tc
+        else:
+            tc.trust_status = "removed"
+            tc.updated_at = datetime.now(timezone.utc)
+
+    if primary_tc and keep.normalized_phone:
+        primary_tc.normalized_phone = keep.normalized_phone
+        primary_tc.contact_id = keep.id
+        primary_tc.updated_at = datetime.now(timezone.utc)
 
     suggestion.status = "merged"
     suggestion.updated_at = datetime.now(timezone.utc)

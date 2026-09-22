@@ -952,18 +952,21 @@ Prioritize user safety and provide clear guidance.""",
         return None
 
 
+# Keys must match SIGNAL_WEIGHTS / transcript_signals output.
 HIGH_SEVERITY_SIGNALS = frozenset(
     {
         "verification_code_request",
-        "remote_access",
-        "asked_for_remote_access",
-        "secrecy",
-        "asked_to_keep_secret",
+        "remote_access_request",
+        "asks_to_keep_secret",
         "bank_impersonation",
         "government_impersonation",
-        "wire_transfer",
-        "gift_card",
-        "crypto",
+        "gift_cards",
+        "crypto_payment",
+        "threats_or_arrest",
+        "tech_support",
+        "grandparent_scam",
+        "family_emergency_scam",
+        "upfront_payment_request",
     }
 )
 

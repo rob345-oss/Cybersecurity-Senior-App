@@ -30,6 +30,26 @@ def test_parse_person_extracts_fields():
     assert parsed["normalized_phone"] == "+13015550192"
     assert parsed["email"] == "mary@example.com"
     assert len(parsed["additional_phone_numbers"]) >= 1
+    assert parsed["additional_phone_numbers"][0]["raw"] == "(301) 555-0192"
+    assert parsed["additional_phone_numbers"][0]["normalized"] == "+13015550192"
+
+
+def test_parse_person_skips_invalid_phones_without_mispairing():
+    person = {
+        "resourceName": "people/c999",
+        "names": [{"displayName": "Alex", "metadata": {"primary": True}}],
+        "phoneNumbers": [
+            {"value": "call me"},
+            {"value": "+1 301 555 0192"},
+        ],
+    }
+    parsed = parse_person(person)
+    assert parsed is not None
+    assert parsed["primary_phone"] == "+1 301 555 0192"
+    assert parsed["normalized_phone"] == "+13015550192"
+    assert parsed["additional_phone_numbers"] == [
+        {"raw": "+1 301 555 0192", "normalized": "+13015550192"}
+    ]
 
 
 def test_parse_person_without_resource_returns_none():
