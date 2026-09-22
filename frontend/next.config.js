@@ -8,9 +8,22 @@ const repoRoot = path.join(frontendDir, '..')
 loadEnvConfig(repoRoot)
 loadEnvConfig(frontendDir)
 
+// GitHub Pages static export (set GITHUB_PAGES=true in CI only).
+const isGithubPages = process.env.GITHUB_PAGES === 'true'
+const githubPagesBasePath = process.env.GITHUB_PAGES_BASE_PATH || '/Cybersecurity-Senior-App'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  ...(isGithubPages
+    ? {
+        output: 'export',
+        basePath: githubPagesBasePath,
+        assetPrefix: `${githubPagesBasePath}/`,
+        images: { unoptimized: true },
+        trailingSlash: true,
+      }
+    : {}),
   env: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID:
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID ?? '',

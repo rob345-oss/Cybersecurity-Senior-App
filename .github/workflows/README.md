@@ -28,56 +28,59 @@ Builds the Flutter application for different platforms.
 - Pull requests to main/develop/master
 - Manual workflow dispatch
 
-### 3. Deploy (`deploy.yml`)
+### 3. Deploy GitHub Pages (`deploy-github-pages.yml`) — primary public site
 
-Deploys the application to staging or production environments.
+Builds a static export of the Next.js app (`frontend/`) and publishes it to GitHub Pages.
+**No extra secrets required** (uses `GITHUB_TOKEN`).
+
+**Live URL after the first successful run:**
+`https://rob345-oss.github.io/Cybersecurity-Senior-App/`
+
+**One-time setup:** Repo → Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+
+### 4. Deploy (`deploy.yml`) — optional Vercel + Render
+
+Runs on push to `main` / `master`. Skips with a warning when secrets are missing (Pages still deploys).
 
 **Jobs:**
-- **Deploy Backend**: 
-  - Runs tests
-  - Builds Docker image
-  - Pushes to container registry (if configured)
-  - Deploys to staging/production
-- **Deploy Frontend**:
-  - Builds Flutter web app
-  - Deploys to staging/production
-
-**Environments:**
-- **Staging**: Triggered on pushes to `develop` branch
-- **Production**: Triggered on pushes to `main` or `master` branch
-- **Manual**: Can be triggered manually with environment selection
+- **Deploy Backend to Render**: POSTs to `RENDER_DEPLOY_HOOK_URL`
+- **Deploy Frontend to Vercel**: builds Next.js, then `vercel deploy --prod`
 
 ## Setup Instructions
 
-### Required Secrets
+### Optional secrets (for Vercel / Render — GitHub → Settings → Secrets and variables → Actions)
 
-For the deployment workflow to work, you need to configure the following secrets in your GitHub repository:
+| Secret | Where to get it |
+| --- | --- |
+| `VERCEL_TOKEN` | [Vercel Account Tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Vercel Project → Settings → General (or `.vercel/project.json` after `vercel link`) |
+| `VERCEL_PROJECT_ID` | Same as above |
+| `RENDER_DEPLOY_HOOK_URL` | Render Dashboard → `titanium-guardian-api` → Settings → Deploy Hook |
 
-1. **Container Registry** (optional, for backend deployment):
-   - `REGISTRY_URL`: Your container registry URL (e.g., `ghcr.io` or `docker.io`)
-   - `REGISTRY_USERNAME`: Username for the registry
-   - `REGISTRY_PASSWORD`: Password or token for the registry
+### Recommended repository variables (Actions → Variables)
 
-2. **Deployment Credentials** (add as needed for your deployment platform):
-   - AWS credentials, Firebase tokens, Kubernetes configs, etc.
+- `NEXT_PUBLIC_API_URL` — public Render API URL (e.g. `https://titanium-guardian-api.onrender.com`)
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — if using Supabase auth
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — Google OAuth web client
+
+### One-time platform setup
+
+1. **GitHub Pages** (works today): Settings → Pages → Source: GitHub Actions.
+2. **Vercel** (optional): Import this repo (root `frontend`), or Cursor Agents → **Publish**.
+3. **Render** (optional API): New → Blueprint → this repo (`render.yaml`).
 
 ### Environment Configuration
 
 1. Go to your GitHub repository
-2. Navigate to **Settings** → **Environments**
-3. Create two environments: `staging` and `production`
-4. Add any required secrets or variables for each environment
+2. Navigate to **Settings** → **Environments** (optional) or **Secrets and variables → Actions**
+3. Add the secrets and variables listed above
 
 ### Customizing Deployment
 
-The deployment workflow includes placeholder commands. You'll need to customize them based on your deployment platform:
-
-**For AWS:**
-```yaml
-- name: Deploy to staging
-  run: |
-    aws s3 sync frontend/build/web s3://staging-bucket/
-    aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
+**Vercel CLI (what CI runs):**
+```bash
+cd frontend
+npx vercel@latest deploy --prod --token "$VERCEL_TOKEN" --yes
 ```
 
 **For Firebase:**

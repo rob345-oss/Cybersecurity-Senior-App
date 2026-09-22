@@ -24,13 +24,14 @@ jobs:
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
-            curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
-            echo "Render deploy triggered."
-          else
-            echo "RENDER_DEPLOY_HOOK_URL secret is not set."
-            echo "If Render is connected to this GitHub repo, pushes to main still auto-deploy."
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK_URL secret is not set — skipping Render API deploy."
+            echo "Frontend still deploys via the Deploy GitHub Pages workflow."
+            echo "Add the secret from Render → Service → Settings → Deploy Hook when ready."
+            exit 0
           fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          echo "Render deploy triggered."
 
   deploy-frontend:
     name: Deploy Frontend to Vercel
@@ -65,9 +66,14 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         working-directory: frontend
         run: |
-          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
-            npx vercel@latest deploy --prod --token "$VERCEL_TOKEN" --yes
-          else
-            echo "Vercel secrets are not fully configured."
-            echo "If Vercel is connected to this GitHub repo, pushes to main still auto-deploy."
+          missing=0
+          if [ -z "$VERCEL_TOKEN" ]; then echo "::warning::Missing secret VERCEL_TOKEN"; missing=1; fi
+          if [ -z "$VERCEL_ORG_ID" ]; then echo "::warning::Missing secret VERCEL_ORG_ID"; missing=1; fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then echo "::warning::Missing secret VERCEL_PROJECT_ID"; missing=1; fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Skipping Vercel CLI deploy. Frontend still deploys via Deploy GitHub Pages."
+            echo "Add VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID under Actions secrets for vercel.app hosting,"
+            echo "or connect the repo in Vercel / use Cursor Agents → Publish."
+            exit 0
           fi
+          npx vercel@latest deploy --prod --token "$VERCEL_TOKEN" --yes
