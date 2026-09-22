@@ -15,9 +15,10 @@ export interface DeriveCallPhaseInput {
  * Keeps calling logic (DeviceStatus) separate from screen orchestration.
  */
 export function deriveCallPhase(input: DeriveCallPhaseInput): CallPhase {
+  // A live call wins over a leftover failed/ended flag from the previous attempt.
+  if (input.hasActiveCall || input.deviceStatus === 'on-call') return 'active'
   if (input.callFailed) return 'failed'
   if (input.justEnded) return 'ended'
-  if (input.hasActiveCall || input.deviceStatus === 'on-call') return 'active'
   if (input.isConnecting) return 'connecting'
   if (input.isDialing) return 'dialing'
   return 'idle'

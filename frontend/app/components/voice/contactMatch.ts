@@ -77,19 +77,25 @@ export function callerDisplayFromTrusted(
   trusted: TrustedCallerInfo | null,
   fallbackName?: string
 ): CallerDisplay {
+  const displayName = trusted?.name || fallbackName || phone || 'Unknown'
   if (trusted?.trusted) {
     return {
       phoneNumber: phone,
-      displayName: trusted.name || fallbackName || phone,
+      displayName,
       photoUrl: trusted.photo_url,
       relationship: trusted.relationship,
       isTrusted: true,
       contactId: trusted.contact_id,
     }
   }
+  // A saved contact who is not trusted still has a name. Dropping it made
+  // known callers look like raw numbers on the incoming-call screen.
   return {
     phoneNumber: phone,
-    displayName: fallbackName || phone || 'Unknown',
+    displayName,
+    photoUrl: trusted?.photo_url,
+    relationship: trusted?.relationship,
     isTrusted: false,
+    contactId: trusted?.contact_id,
   }
 }

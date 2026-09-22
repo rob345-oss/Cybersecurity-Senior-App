@@ -39,3 +39,20 @@ export function formatPhoneForDisplay(phone: string): string {
 export function phoneForSmsUri(phone: string): string {
   return normalizePhone(phone)
 }
+
+/**
+ * E.164 for an outbound call.
+ * A leading + is kept and formatting is stripped.
+ * 10-digit and 1+10-digit numbers are treated as US, matching the dial pad.
+ */
+export function toOutboundE164(phone: string): string {
+  const trimmed = phone.trim()
+  if (!trimmed) return ''
+  const hasPlus = trimmed.startsWith('+')
+  const digits = trimmed.replace(/\D/g, '')
+  if (!digits) return ''
+  if (hasPlus) return `+${digits}`
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return `+${digits}`
+}

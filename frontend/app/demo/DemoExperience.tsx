@@ -26,13 +26,14 @@ export default function DemoExperience() {
   const router = useRouter()
   const openedTracked = useRef(false)
 
+  const showingFamilyAlert = state.stage === 'familyAlert'
   const alertTime = useMemo(
     () =>
       new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(new Date()),
-    []
+    [showingFamilyAlert]
   )
 
   useEffect(() => {
@@ -46,7 +47,8 @@ export default function DemoExperience() {
     if (state.stage !== 'screening') return
     if (state.screeningStepIndex < 0) return
     const nextIndex = state.screeningStepIndex + 1
-    if (nextIndex >= SCREENING_STEPS.length) return
+    // One step past the last visible step is what moves the demo into analysis.
+    if (nextIndex > SCREENING_STEPS.length) return
     const t = window.setTimeout(() => {
       dispatch({ type: 'SET_SCREENING_STEP', index: nextIndex })
     }, demoStepDelay(reducedMotion, 900))
@@ -57,10 +59,7 @@ export default function DemoExperience() {
   useEffect(() => {
     if (state.stage !== 'suspicious' && state.stage !== 'highRisk') return
     const next = state.transcriptIndex + 1
-    if (next >= TRANSCRIPT_LINES.length) {
-      if (state.stage === 'highRisk') return
-      return
-    }
+    if (next >= TRANSCRIPT_LINES.length) return
     const t = window.setTimeout(() => {
       dispatch({ type: 'REVEAL_TRANSCRIPT_LINE', index: next })
     }, demoStepDelay(reducedMotion, 1400))

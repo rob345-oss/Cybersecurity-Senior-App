@@ -138,8 +138,7 @@ export default function RiskWarningPanel({
 
   return (
     <div
-      role="alertdialog"
-      aria-modal={isHigh || isPossible}
+      role={isUnknown ? 'region' : 'alert'}
       aria-labelledby={titleId}
       aria-describedby={`${titleId}-desc`}
       className={cn(

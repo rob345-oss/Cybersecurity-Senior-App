@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   findContactByPhone,
   contactToCallerDisplay,
+  callerDisplayFromTrusted,
 } from '../contactMatch'
 import type { Contact } from '../../../contacts/api'
 
@@ -29,6 +30,21 @@ describe('contactMatch', () => {
     expect(display.isTrusted).toBe(true)
     expect(display.displayName).toBe('Mary Smith')
     expect(display.relationship).toBe('Daughter')
+  })
+
+  it('keeps the name of a saved contact who is not trusted', () => {
+    const untrusted = { ...contact, is_trusted: false, display_name: 'Alex Rivera' }
+    const display = contactToCallerDisplay('+13015550192', untrusted)
+    expect(display.isTrusted).toBe(false)
+    expect(display.displayName).toBe('Alex Rivera')
+
+    const fromTrusted = callerDisplayFromTrusted('+13015550192', {
+      trusted: false,
+      name: 'Alex Rivera',
+      contact_id: 'c1',
+    })
+    expect(fromTrusted.isTrusted).toBe(false)
+    expect(fromTrusted.displayName).toBe('Alex Rivera')
   })
 
   it('falls back for unknown numbers', () => {

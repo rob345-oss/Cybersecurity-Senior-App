@@ -98,13 +98,25 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
 
   useEffect(() => {
     let cancelled = false
-    listContacts({ trusted_only: false, page_size: 100 })
-      .then((res) => {
-        if (!cancelled) setContacts(res.contacts)
-      })
-      .catch(() => {
+    const load = async () => {
+      try {
+        const pageSize = 200
+        const first = await listContacts({ trusted_only: false, page_size: pageSize, page: 1 })
+        if (cancelled) return
+        const all = [...first.contacts]
+        const size = first.page_size || pageSize
+        const pages = Math.min(Math.ceil(first.total / size), 10)
+        for (let page = 2; page <= pages; page += 1) {
+          const next = await listContacts({ trusted_only: false, page_size: size, page })
+          if (cancelled) return
+          all.push(...next.contacts)
+        }
+        setContacts(all)
+      } catch {
         // Contacts optional for dialer matching
-      })
+      }
+    }
+    void load()
     return () => {
       cancelled = true
     }
@@ -140,10 +152,20 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
   const preCallTrusted = matchedContact?.is_trusted === true
   const preCallTrustedInfo = trustedInfoFromContact(matchedContact)
 
+  // Keep a contact-book trust match for the whole call. The socket payload
+  // can override it when the server confirms trust, but a missing or failed
+  // lookup must not relabel a trusted person as unknown. High/medium risk
+  // still wins inside mapRiskToUiState.
+  const effectiveTrusted =
+    trustedCaller?.trusted === true
+      ? trustedCaller
+      : preCallTrusted
+        ? preCallTrustedInfo
+        : null
   const liveRiskUi = mapRiskToUiState({
     risk,
-    trustedCaller: trustedCaller || (activeCall ? null : preCallTrustedInfo),
-    preCallTrusted: activeCall ? trustedCaller?.trusted : preCallTrusted,
+    trustedCaller: effectiveTrusted,
+    preCallTrusted: effectiveTrusted?.trusted === true,
   })
 
   const baseSystemState: SystemCallState = !online
@@ -286,7 +308,8 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
     }
     try {
       const key = 'callguard_reported_numbers'
-      const existing = JSON.parse(localStorage.getItem(key) || '[]') as unknown[]
+      const parsed = JSON.parse(localStorage.getItem(key) || '[]') as unknown
+      const existing = Array.isArray(parsed) ? parsed : []
       existing.push(payload)
       localStorage.setItem(key, JSON.stringify(existing))
       setActionMessage(
@@ -402,11 +425,11 @@ export default function VoiceCallPanel({ onSessionChange }: VoiceCallPanelProps)
         return (
           <IncomingCallModal
             callerId={incomingCallerId}
-            caller={callerDisplayFromTrusted(incomingCallerId, incomingTrusted)}
+            caller={contactToCallerDisplay(incomingCallerId, incomingContact)}
             riskState={mapRiskToUiState({
               risk: null,
               trustedCaller: incomingTrusted,
-              preCallTrusted: incomingContact?.is_trusted,
+              preCallTrusted: incomingContact?.is_trusted === true,
             })}
             onAccept={handleAccept}
             onDecline={declineIncoming}
