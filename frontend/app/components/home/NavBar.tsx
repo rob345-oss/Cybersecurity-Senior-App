@@ -6,60 +6,25 @@ import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 
 const demoButtonClassName =
-  'inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors font-medium'
+  'inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-blue-800 text-white rounded-lg hover:bg-blue-900 active:bg-blue-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 transition-colors font-medium'
 
 export default function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { isAuthenticated, loading, logout } = useAuth()
 
-  const demoLink = (
+  const closeMenu = () => setIsMenuOpen(false)
+
+  const demoLink = (className = demoButtonClassName) => (
     <Link
       href="/demo"
-      className={demoButtonClassName}
-      title="No signup required"
+      className={className}
+      title="No signup required — stays on this website"
       aria-label="Try Live Demo — no signup required"
+      onClick={closeMenu}
     >
       <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
       Try Live Demo
     </Link>
-  )
-
-  const authLinks = (
-    <>
-      {demoLink}
-      {isAuthenticated ? (
-        <>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-          >
-            Dashboard
-          </Link>
-          <button
-            type="button"
-            onClick={logout}
-            className="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            Log out
-          </button>
-        </>
-      ) : (
-        <>
-          <Link
-            href="/login"
-            className="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            Log In
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-          >
-            Sign Up
-          </Link>
-        </>
-      )}
-    </>
   )
 
   return (
@@ -68,19 +33,19 @@ export default function NavBar() {
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
             <Link href="/" className="text-xl font-bold text-gray-900">
-              Titanium Systems
+              Titanium Guardian
             </Link>
           </div>
 
           <div className="hidden md:flex items-center space-x-8">
             <Link href="#product" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Product
-            </Link>
-            <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">
-              How It Works
+              Learn
             </Link>
             <Link href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
               Pricing
+            </Link>
+            <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">
+              How It Works
             </Link>
             <Link href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">
               FAQ
@@ -88,7 +53,43 @@ export default function NavBar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            {!loading && authLinks}
+            {!loading && (
+              <>
+                {demoLink()}
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      href="/dashboard"
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      Log out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      Log In
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           <button
@@ -108,36 +109,27 @@ export default function NavBar() {
 
         {isMenuOpen && (
           <div className="md:hidden pb-4 space-y-3">
-            <Link href="#product" className="block text-gray-600 hover:text-gray-900 py-2">
-              Product
+            <Link href="#product" className="block text-gray-600 hover:text-gray-900 py-2" onClick={closeMenu}>
+              Learn
             </Link>
-            <Link href="#how-it-works" className="block text-gray-600 hover:text-gray-900 py-2">
-              How It Works
-            </Link>
-            <Link href="#pricing" className="block text-gray-600 hover:text-gray-900 py-2">
+            <Link href="#pricing" className="block text-gray-600 hover:text-gray-900 py-2" onClick={closeMenu}>
               Pricing
             </Link>
-            <Link href="#faq" className="block text-gray-600 hover:text-gray-900 py-2">
+            <Link href="#how-it-works" className="block text-gray-600 hover:text-gray-900 py-2" onClick={closeMenu}>
+              How It Works
+            </Link>
+            <Link href="#faq" className="block text-gray-600 hover:text-gray-900 py-2" onClick={closeMenu}>
               FAQ
             </Link>
             {!loading && (
               <div className="space-y-2 pt-2">
-                <Link
-                  href="/demo"
-                  className={`${demoButtonClassName} w-full`}
-                  title="No signup required"
-                  aria-label="Try Live Demo — no signup required"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  Try Live Demo
-                </Link>
+                {demoLink(`${demoButtonClassName} w-full`)}
                 {isAuthenticated ? (
                   <>
                     <Link
                       href="/dashboard"
                       className="block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-center"
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={closeMenu}
                     >
                       Dashboard
                     </Link>
@@ -145,7 +137,7 @@ export default function NavBar() {
                       type="button"
                       onClick={() => {
                         logout()
-                        setIsMenuOpen(false)
+                        closeMenu()
                       }}
                       className="block w-full px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-center"
                     >
@@ -157,12 +149,14 @@ export default function NavBar() {
                     <Link
                       href="/login"
                       className="block px-4 py-2 text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-center"
+                      onClick={closeMenu}
                     >
                       Log In
                     </Link>
                     <Link
                       href="/signup"
                       className="block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-center"
+                      onClick={closeMenu}
                     >
                       Sign Up
                     </Link>

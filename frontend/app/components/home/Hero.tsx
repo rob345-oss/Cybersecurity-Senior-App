@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Shield } from 'lucide-react'
 
 export default function Hero() {
   return (
@@ -8,26 +9,34 @@ export default function Hero() {
       <div className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-800 mb-3">
+              Phone scam protection for families
+            </p>
             <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              Your digital guardian.
+              Stop suspicious calls before they become costly mistakes.
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              AI-powered protection for older adults against scams across phone, text, email, and web.
+              Designed around a familiar phone experience. No complicated technology to learn.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/signup"
-                className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold text-center"
+                href="/demo"
+                className="inline-flex items-center justify-center gap-2 min-h-[48px] px-6 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-semibold text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                aria-label="Try Live Demo on this website — no signup required"
               >
-                Get Started
+                <Shield className="w-5 h-5 shrink-0" aria-hidden="true" />
+                Try Live Demo
               </Link>
               <Link
                 href="#how-it-works"
-                className="px-6 py-3 bg-white text-gray-900 border-2 border-gray-900 rounded-lg hover:bg-gray-50 transition-colors font-semibold text-center"
+                className="inline-flex items-center justify-center min-h-[48px] px-6 py-3 bg-white text-gray-900 border-2 border-gray-900 rounded-lg hover:bg-gray-50 transition-colors font-semibold text-center"
               >
                 See How It Works
               </Link>
             </div>
+            <p className="mt-4 text-sm text-gray-500">
+              Opens a simulated CallGuard walkthrough on this site. No third-party demo link.
+            </p>
           </div>
           <div className="hidden lg:block">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
@@ -45,7 +54,7 @@ export default function Hero() {
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1 h-10 bg-gray-100 rounded-lg"></div>
-                  <div className="flex-1 h-10 bg-gray-900 rounded-lg"></div>
+                  <div className="flex-1 h-10 bg-blue-800 rounded-lg"></div>
                 </div>
               </div>
             </div>
@@ -55,4 +64,3 @@ export default function Hero() {
     </section>
   )
 }
-

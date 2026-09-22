@@ -3,8 +3,9 @@ import './globals.css'
 import Providers from './components/Providers'
 
 export const metadata: Metadata = {
-  title: 'Titanium Systems - Your digital guardian.',
-  description: 'AI-powered protection for older adults against scams across phone, text, email, and web.',
+  title: 'Titanium Guardian | Phone Scam Protection for Older Adults and Families',
+  description:
+    'Titanium Guardian helps older adults and their families recognize suspicious phone calls, pause before acting, and verify urgent requests.',
 }
 
 export default function RootLayout({

@@ -36,7 +36,7 @@ describe('NavBar demo CTA', () => {
     const links = screen.getAllByRole('link', { name: /try live demo/i })
     expect(links.length).toBeGreaterThanOrEqual(1)
     expect(links[0]).toHaveAttribute('href', '/demo')
-    expect(links[0]).toHaveAttribute('title', 'No signup required')
+    expect(links[0]).toHaveAttribute('title', 'No signup required — stays on this website')
   })
 
   it('shows Try Live Demo inside the mobile navigation menu', async () => {
