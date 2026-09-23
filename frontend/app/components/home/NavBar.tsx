@@ -92,19 +92,31 @@ export default function NavBar() {
             )}
           </div>
 
-          <button
-            className="md:hidden p-2 text-gray-600 hover:text-gray-900"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <Link
+              href="/demo"
+              className="inline-flex items-center justify-center gap-1.5 min-h-[40px] px-3 py-2 bg-blue-800 text-white rounded-lg hover:bg-blue-900 active:bg-blue-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 transition-colors text-sm font-semibold"
+              title="No signup required — stays on this website"
+              aria-label="Try Live Demo — no signup required"
+            >
+              <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
+              Demo
+            </Link>
+            <button
+              className="p-2 text-gray-600 hover:text-gray-900"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
+              aria-expanded={isMenuOpen}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
 
         {isMenuOpen && (
