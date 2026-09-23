@@ -10,7 +10,11 @@ loadEnvConfig(frontendDir)
 
 // GitHub Pages static export (set GITHUB_PAGES=true in CI only).
 const isGithubPages = process.env.GITHUB_PAGES === 'true'
-const githubPagesBasePath = process.env.GITHUB_PAGES_BASE_PATH || '/Cybersecurity-Senior-App'
+// Allow empty base path for temporary static hosts (Vercel/local preview).
+const githubPagesBasePath =
+  process.env.GITHUB_PAGES_BASE_PATH !== undefined
+    ? process.env.GITHUB_PAGES_BASE_PATH
+    : '/Cybersecurity-Senior-App'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -18,8 +22,12 @@ const nextConfig = {
   ...(isGithubPages
     ? {
         output: 'export',
-        basePath: githubPagesBasePath,
-        assetPrefix: `${githubPagesBasePath}/`,
+        ...(githubPagesBasePath
+          ? {
+              basePath: githubPagesBasePath,
+              assetPrefix: `${githubPagesBasePath}/`,
+            }
+          : {}),
         images: { unoptimized: true },
         trailingSlash: true,
       }
