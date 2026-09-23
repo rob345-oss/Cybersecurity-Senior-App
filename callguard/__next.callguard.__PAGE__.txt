@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+3:I[97367,["/Cybersecurity-Senior-App/_next/static/chunks/0~0~bnx8um.3_.js","/Cybersecurity-Senior-App/_next/static/chunks/0c4ri7g_x7g2j.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+0:{"rsc":["$","$1","c",{"children":["$L2",null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"MsXrqqdWMf7K38P6Qr5cP"}
+5:null
+2:E{"digest":"NEXT_REDIRECT;replace;/dashboard/callguard;307;"}

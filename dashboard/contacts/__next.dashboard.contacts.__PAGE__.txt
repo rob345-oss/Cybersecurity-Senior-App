@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:"$Sreact.suspense"
+3:I[23768,["/Cybersecurity-Senior-App/_next/static/chunks/0~0~bnx8um.3_.js","/Cybersecurity-Senior-App/_next/static/chunks/0c4ri7g_x7g2j.js","/Cybersecurity-Senior-App/_next/static/chunks/0-c6caokc4xu0.js","/Cybersecurity-Senior-App/_next/static/chunks/01dyp37b8xae4.js","/Cybersecurity-Senior-App/_next/static/chunks/0xxl5j~s1~tar.js"],"default"]
+4:I[97367,["/Cybersecurity-Senior-App/_next/static/chunks/0~0~bnx8um.3_.js","/Cybersecurity-Senior-App/_next/static/chunks/0c4ri7g_x7g2j.js"],"OutletBoundary"]
+0:{"rsc":["$","$1","c",{"children":[["$","$2",null,{"fallback":["$","div",null,{"className":"py-24 text-center text-lg text-gray-600","children":"Loading your contacts…"}],"children":["$","$L3",null,{}]}],[["$","script","script-0",{"src":"/Cybersecurity-Senior-App/_next/static/chunks/01dyp37b8xae4.js","async":true}],["$","script","script-1",{"src":"/Cybersecurity-Senior-App/_next/static/chunks/0xxl5j~s1~tar.js","async":true}]],["$","$L4",null,{"children":["$","$2",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"MsXrqqdWMf7K38P6Qr5cP"}
+5:null
